@@ -1,0 +1,188 @@
+/*
+ *TesterClass
+ *@author Karthik Selvaraj
+ *November 10, 2018
+ *Changes-
+ * >This is the first draft
+*/
+
+#include "robot-config.h"
+#include <math.h>
+
+void prep(){
+    Gyroscope.startCalibration();
+}
+
+
+//Gyroscope Turning
+//Positive Direction is right, Negative is left
+void GyroTurn(int deg, int speed){
+    
+}
+
+
+
+//PID FWD & REV Chassis Movement
+void PIDChassis(double dist){
+    RightChassis.resetRotation();
+    LeftChassis.resetRotation();
+    
+    double goal = (180*dist)/(2*M_PI);
+    
+    double pGain = 30.0;
+    double iGain = 0.0;
+    double dGain = 0.0;
+    
+    double errorR = goal - RightChassis.rotation(vex::rotationUnits::deg);
+    double errorL = goal - LeftChassis.rotation(vex::rotationUnits::deg);
+    double errorSum = 0.0;
+    bool isFirst = true;
+    int counter = 0;
+    double oldError = RightChassis.rotation(vex::rotationUnits::deg);
+    int i = 0;
+    Timer.clear();
+    double oldSpeed = 0.0;
+    
+    while(true){
+        
+        errorR = goal - RightChassis.rotation(vex::rotationUnits::deg);
+        errorL = goal - LeftChassis.rotation(vex::rotationUnits::deg);
+        errorSum += ((errorR + errorL)/2);
+        if(errorR == 0.0 || errorR < goal || errorL == 0.0 || errorL < goal){
+            errorSum = 0.0;
+        }
+        double avgError = ((errorR + errorL)/2);
+        double change = avgError - oldError;
+        
+        double difference = RightChassis.rotation(vex::rotationUnits::deg) - LeftChassis.rotation(vex::rotationUnits::deg);
+        double motorSpeed = (avgError*pGain) + (errorSum*iGain) + (change*dGain);
+        RightChassis.spin(vex::directionType::fwd, motorSpeed, vex::velocityUnits::dps);
+        LeftChassis.spin(vex::directionType::fwd, motorSpeed+ difference,vex::velocityUnits::dps);
+        
+        oldError = avgError;
+        
+        if(oldSpeed >= 0.0 && motorSpeed < 0.0 && isFirst == true){
+            isFirst = false;
+            oldSpeed = motorSpeed;
+            Timer.clear();
+            continue;
+        }
+        else if(oldSpeed < 0.0 && motorSpeed > 0.0 && isFirst == false){
+            counter++;
+        }
+        else if(oldSpeed > 0.0 && motorSpeed < 0.0 && isFirst == false){
+            counter++;
+        }
+        else{
+            oldSpeed = motorSpeed;
+            continue;
+        }
+
+        if(counter % 2 != 0 && counter > 1){
+            double currentTime = Timer.time(vex::timeUnits::msec);
+            int add = (i-1)*10;
+            char str[20];
+            Brain.Screen.printAt(1,40 + add, true, str, "%lf", currentTime);
+            Timer.clear();
+        }
+        oldSpeed = motorSpeed;
+        i++;
+    }
+    
+    LeftChassis.stop(vex::brakeType::brake);
+    RightChassis.stop(vex::brakeType::brake);
+    
+    RightChassis.resetRotation();
+    LeftChassis.resetRotation();
+}
+
+
+
+//PID UP & DWN Lift Movement
+void PIDLift(int height){
+    RightLift.resetRotation();
+    LeftLift.resetRotation();
+    
+    double goal = (180*height)/(1.75*M_PI);
+    
+    double pGain = 0.0;
+    double iGain = 0.0;
+    double dGain = 0.0;
+    
+    double error = goal - RightLift.rotation(vex::rotationUnits::deg);
+    double errorSum = 0.0;
+    
+    double oldError = RightLift.rotation(vex::rotationUnits::deg);
+    
+    while(error > -10.0){
+        error = goal - RightLift.rotation(vex::rotationUnits::deg);
+        errorSum += error;
+        
+        double change = error - oldError;
+        
+        double motorSpeed = (error*pGain) + (errorSum*iGain) + (change*dGain);
+        
+        if(motorSpeed < 240){break;}
+        
+        RightLift.spin(vex::directionType::fwd, motorSpeed, vex::velocityUnits::dps);
+        LeftLift.spin(vex::directionType::fwd, motorSpeed ,vex::velocityUnits::dps);
+        
+        oldError = error;
+    }
+    LeftLift.stop(vex::brakeType::hold);
+    RightLift.stop(vex::brakeType::hold);
+    
+    RightLift.resetRotation();
+    LeftLift.resetRotation();
+}
+
+
+
+//PID Claw Movement
+void PIDClaw(){
+    Claw.resetRotation();
+    double target = 0.0;//Until Value is Obtained 
+    while(Claw.rotation(vex::rotationUnits::deg) < target){
+        Claw.spin(vex::directionType::fwd,100, vex::velocityUnits::rpm);
+    }
+    Claw.stop(vex::brakeType::hold);
+    Claw.resetRotation();
+}
+
+
+
+//Ball Shooting Code NV
+void ShootBall(int vel){
+    
+}
+
+
+
+//Vision Sensor Code NV
+void VisionSearch(){
+    
+}
+
+
+
+
+//Tester Code Area
+int main() {
+    prep();
+    while(Gyroscope.isCalibrating()){Brain.Screen.print("Calibrating...");}
+    
+    PIDChassis(10.0);
+    
+    
+    //PID Lift Tester
+    //PIDLift(5.0);
+    
+   
+    
+    //PID Claw Tester (Obtain approximate encoder value for flipping)
+    /*
+    while(true){
+        Brain.Screen.print(Claw.rotation(vex::rotationUnits::deg));
+    }
+    */
+}
