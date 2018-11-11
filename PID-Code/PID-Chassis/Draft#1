@@ -10,7 +10,7 @@ void PIDChassis(double dist){
     
     double goal = (180*dist)/(2*M_PI);
     
-    double pGain = 30.0;
+    double pGain = 0.0;
     double iGain = 0.0;
     double dGain = 0.0;
     
