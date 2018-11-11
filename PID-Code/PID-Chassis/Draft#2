@@ -1,0 +1,47 @@
+/*
+ *PID Chassis Code
+ *@author Karthik Selvaraj
+ *October 30, 2018
+ *Changes-
+ * >Error now includes errors of both motors
+ * >Evens speed out with each motor if they are not driving at the same speed (robot will now go straight)
+ * >Critical Gain was found to be 30.0 after testing
+*/
+void PIDChassis(double dist){
+    RightChassis.resetRotation();
+    LeftChassis.resetRotation();
+    
+    double goal = (180*dist)/(2*M_PI);
+    
+    double pGain = 30.0;
+    double iGain = 0.0;
+    double dGain = 0.0;
+    
+    double errorR = goal - RightChassis.rotation(vex::rotationUnits::deg);
+    double errorL = goal - LeftChassis.rotation(vex::rotationUnits::deg);
+    double errorSum = 0.0;
+    double oldError = RightChassis.rotation(vex::rotationUnits::deg);
+    
+    while(true){
+        errorR = goal - RightChassis.rotation(vex::rotationUnits::deg);
+        errorL = goal - LeftChassis.rotation(vex::rotationUnits::deg);
+        errorSum += ((errorR + errorL)/2);
+        if(errorR == 0.0 || errorR < goal || errorL == 0.0 || errorL < goal){
+            errorSum = 0.0;
+        }
+        double avgError = ((errorR + errorL)/2);
+        double change = avgError - oldError;
+        double difference = RightChassis.rotation(vex::rotationUnits::deg) - LeftChassis.rotation(vex::rotationUnits::deg);
+        double motorSpeed = (avgError*pGain) + (errorSum*iGain) + (change*dGain);
+        RightChassis.spin(vex::directionType::fwd, motorSpeed, vex::velocityUnits::dps);
+        LeftChassis.spin(vex::directionType::fwd, motorSpeed+ difference,vex::velocityUnits::dps);
+        
+        oldError = avgError;
+    }
+    
+    LeftChassis.stop(vex::brakeType::brake);
+    RightChassis.stop(vex::brakeType::brake);
+    
+    RightChassis.resetRotation();
+    LeftChassis.resetRotation();
+}
