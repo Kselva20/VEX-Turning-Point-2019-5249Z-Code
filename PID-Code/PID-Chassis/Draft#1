@@ -1,0 +1,41 @@
+/*
+ *PID Chassis Code
+ *@author Karthik Selvara
+ *October 20, 2018
+ *Changes- This is the first draft
+*/
+void PIDChassis(double dist){
+    RightChassis.resetRotation();
+    LeftChassis.resetRotation();
+    
+    double goal = (180*dist)/(2*M_PI);
+    
+    double pGain = 30.0;
+    double iGain = 0.0;
+    double dGain = 0.0;
+    
+    double error = goal - RightChassis.rotation(vex::rotationUnits::deg);
+
+    double errorSum = 0.0;
+    double oldError = RightChassis.rotation(vex::rotationUnits::deg);
+    
+    while(true){
+        error = goal - RightChassis.rotation(vex::rotationUnits::deg);
+        errorSum += error;
+        if(error == 0.0 || error < goal){
+            errorSum = 0.0;
+        }
+        double change = error - oldError;
+        double motorSpeed = (error*pGain) + (errorSum*iGain) + (change*dGain);
+        RightChassis.spin(vex::directionType::fwd, motorSpeed, vex::velocityUnits::dps);
+        LeftChassis.spin(vex::directionType::fwd, motorSpeed,vex::velocityUnits::dps);
+        
+        oldError = error;
+    }
+    
+    LeftChassis.stop(vex::brakeType::brake);
+    RightChassis.stop(vex::brakeType::brake);
+    
+    RightChassis.resetRotation();
+    LeftChassis.resetRotation();
+}
