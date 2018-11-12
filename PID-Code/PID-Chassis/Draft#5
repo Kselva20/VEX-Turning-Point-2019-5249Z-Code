@@ -1,0 +1,80 @@
+/*
+ *PID Chassis Code (Draft #5)
+ *@author Karthik Selvaraj
+ *November 12, 2018
+ *Changes-
+ * >The code was printing multiple "U"s on the screen, so a new method was taken to print the double "currentTime", now the code prints 
+ *  the value "___" which is too far off (this is still an improvement)
+*/
+
+void PIDChassis(double dist){
+    RightChassis.resetRotation();
+    LeftChassis.resetRotation();
+    
+    double goal = (180*dist)/(2*M_PI);
+    
+    double pGain = 30.0;
+    double iGain = 0.0;
+    double dGain = 0.0;
+    
+    double errorR = goal - RightChassis.rotation(vex::rotationUnits::deg);
+    double errorL = goal - LeftChassis.rotation(vex::rotationUnits::deg);
+    double errorSum = 0.0;
+    bool isFirst = true;
+    int counter = 0;
+    double oldError = RightChassis.rotation(vex::rotationUnits::deg);
+    int i = 0;
+    Timer.clear();
+    double oldSpeed = 0.0;
+    
+    while(true){
+        
+        errorR = goal - RightChassis.rotation(vex::rotationUnits::deg);
+        errorL = goal - LeftChassis.rotation(vex::rotationUnits::deg);
+        errorSum += ((errorR + errorL)/2);
+        if(errorR == 0.0 || errorR < goal || errorL == 0.0 || errorL < goal){
+            errorSum = 0.0;
+        }
+        double avgError = ((errorR + errorL)/2);
+        double change = avgError - oldError;
+        
+        double difference = RightChassis.rotation(vex::rotationUnits::deg) - LeftChassis.rotation(vex::rotationUnits::deg);
+        double motorSpeed = (avgError*pGain) + (errorSum*iGain) + (change*dGain);
+        RightChassis.spin(vex::directionType::fwd, motorSpeed, vex::velocityUnits::dps);
+        LeftChassis.spin(vex::directionType::fwd, motorSpeed+ difference,vex::velocityUnits::dps);
+        
+        oldError = avgError;
+        
+        if(oldSpeed >= 0.0 && motorSpeed < 0.0 && isFirst == true){
+            isFirst = false;
+            oldSpeed = motorSpeed;
+            Timer.clear();
+            continue;
+        }
+        else if(oldSpeed < 0.0 && motorSpeed > 0.0 && isFirst == false){
+            counter++;
+        }
+        else if(oldSpeed > 0.0 && motorSpeed < 0.0 && isFirst == false){
+            counter++;
+        }
+        else{
+            oldSpeed = motorSpeed;
+            continue;
+        }
+
+        if(counter % 2 == 0 && counter > 1){
+            double currentTime = Timer.time(vex::timeUnits::msec);
+            int add = (i-1)*10;
+            Brain.Screen.printAt(1,40 + add, true, "%d", currentTime);
+            Timer.clear();
+        }
+        oldSpeed = motorSpeed;
+        i++;
+    }
+    
+    LeftChassis.stop(vex::brakeType::brake);
+    RightChassis.stop(vex::brakeType::brake);
+    
+    RightChassis.resetRotation();
+    LeftChassis.resetRotation();
+}
