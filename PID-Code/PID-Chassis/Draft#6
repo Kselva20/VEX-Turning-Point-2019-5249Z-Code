@@ -1,0 +1,90 @@
+/*
+ *PID Chassis Code (Draft #4)
+ *@author Karthik Selvaraj
+ *November 14, 2018
+ *Changes-
+ * >"%d" was replaced with "%f" and the correct values were displayed (Period of Critical Gain was found)
+ * >The costants for proportion, integral, and derivative were found using a table found online.
+ * >The initialization statement of motorSpeed was changed to be formatted in a cleaner order and corrected sothe constant for proportion
+ *  was multiplied by the entire expression.
+ * >The motors are now set to spin at rpm instead of dps, because dps is too slow.
+ * >There is now a speed limiter so that the robot cannot go below a certain speed to save time.
+*/
+//PID FWD & REV Chassis Movement
+void PIDChassis(double dist){
+    RightChassis.resetRotation();
+    LeftChassis.resetRotation();
+
+    double goal = (90*dist)/(M_PI);
+    
+    double pGain = 0.6*(0.3713636364);
+    double iGain = 0.5*(0.3713636364);
+    double dGain = 0.125*(0.3713636364);
+    
+    double errorR = goal - RightChassis.rotation(vex::rotationUnits::deg);
+    double errorL = goal - LeftChassis.rotation(vex::rotationUnits::deg);
+    double error = errorR;
+    double errorSum = 0.0;
+    double oldError = RightChassis.rotation(vex::rotationUnits::deg);
+    /*
+    bool isFirst = true;
+    int counter = 0;
+    
+    int i = 0;
+    Timer.clear();
+    double oldSpeed = 0.0;
+    */
+    while(error > 20.0){
+        error = goal - RightChassis.rotation(vex::rotationUnits::deg);
+        errorSum += (error);
+        if(error == 0.0){
+            errorSum = 0.0;
+        }
+       
+        double change = error - oldError;
+        
+        //double difference = RightChassis.rotation(vex::rotationUnits::deg) - LeftChassis.rotation(vex::rotationUnits::deg);
+        double motorSpeed = (error*pGain) + ((1.0/errorSum)*(iGain)) + (change*dGain);
+        if(motorSpeed <= 30.0){
+            motorSpeed = 30.0;
+        }
+        RightChassis.spin(vex::directionType::fwd, motorSpeed, vex::velocityUnits::rpm);
+        LeftChassis.spin(vex::directionType::fwd, motorSpeed,vex::velocityUnits::rpm);
+        
+        oldError = error;
+        /*
+        if(oldSpeed >= 0.0 && motorSpeed < 0.0 && isFirst == true){
+            isFirst = false;
+            oldSpeed = motorSpeed;
+            Brain.resetTimer();
+            continue;
+        }
+        else if(oldSpeed < 0.0 && motorSpeed > 0.0 && isFirst == false){
+            counter++;
+        }
+        else if(oldSpeed > 0.0 && motorSpeed < 0.0 && isFirst == false){
+            counter++;
+        }
+        else{
+            oldSpeed = motorSpeed;
+            continue;
+        }
+
+        if(counter % 2 == 0 && counter > 1){
+            double currentTime = (Brain.timer(vex::timeUnits::sec));
+            int add = (i-1)*10;      
+            Brain.Screen.printAt(1,30 + add, true, "%f", currentTime); 
+            Brain.resetTimer();
+        }
+        oldSpeed = motorSpeed;
+        i++;
+        */
+        vex::task::sleep(30);
+    }
+    
+    LeftChassis.stop(vex::brakeType::brake);
+    RightChassis.stop(vex::brakeType::brake);
+    
+    RightChassis.resetRotation();
+    LeftChassis.resetRotation();
+}
