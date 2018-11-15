@@ -1,0 +1,87 @@
+/*
+ *PID Gyroscope Code (Draft #2)
+ *@author Karthik Selvaraj
+ *November 15, 2018
+ *Changes-
+ * >The P,I, and D constants of the chassis code does not match the gyroscope code, so the testing code was inserted
+*/
+void GyroTurn(double deg){
+    deg *= 10.0;
+    
+    double gyroVal = fabs(Gyroscope.value(vex::analogUnits::range12bit));
+    double org = gyroVal;
+    double current = gyroVal - org;
+
+    double goal = deg + org;
+    
+    double pGain = 0.6*(0.3713636364);
+    double iGain = 0.5*(0.3713636364);
+    double dGain = 0.125*(0.3713636364);
+    
+    double error = goal - current;
+    double errorSum = 0.0;
+    double oldError = 0.0;
+    
+    /*
+    bool isFirst = true;
+    int counter = 0;
+    
+    int i = 0;
+    Timer.clear();
+    double oldSpeed = 0.0;
+    */
+    
+    while(true/*error > 0.0*/){
+        gyroVal = fabs(Gyroscope.value(vex::analogUnits::range12bit));
+        current = gyroVal - org;
+        error = goal - current;
+        errorSum += (error);
+        if(error == 0.0){
+            errorSum = 0.0;
+        }
+       
+        double change = error - oldError;
+        
+        double motorSpeed = (error*pGain) + ((1.0/errorSum)*(iGain)) + (change*dGain);
+        if(motorSpeed <= 30.0){
+            motorSpeed = 30.0;
+        }
+        RightChassis.spin(vex::directionType::rev, motorSpeed, vex::velocityUnits::rpm);
+        LeftChassis.spin(vex::directionType::fwd, motorSpeed,vex::velocityUnits::rpm);
+        
+        oldError = error;
+        
+        /*
+        if(oldSpeed >= 0.0 && motorSpeed < 0.0 && isFirst == true){
+            isFirst = false;
+            oldSpeed = motorSpeed;
+            Brain.resetTimer();
+            continue;
+        }
+        else if(oldSpeed < 0.0 && motorSpeed > 0.0 && isFirst == false){
+            counter++;
+        }
+        else if(oldSpeed > 0.0 && motorSpeed < 0.0 && isFirst == false){
+            counter++;
+        }
+        else{
+            oldSpeed = motorSpeed;
+            continue;
+        }
+
+        if(counter % 2 == 0 && counter > 1){
+            double currentTime = (Brain.timer(vex::timeUnits::sec));
+            int add = (i-1)*10;      
+            Brain.Screen.printAt(1,30 + add, true, "%f", currentTime); 
+            Brain.resetTimer();
+        }
+        oldSpeed = motorSpeed;
+        i++;
+        */
+        
+        vex::task::sleep(30);
+    }
+    
+    LeftChassis.stop(vex::brakeType::brake);
+    RightChassis.stop(vex::brakeType::brake);
+}
