@@ -5,7 +5,7 @@
  *Changes-
  * >The P,I, and D constants of the chassis code does not match the gyroscope code, so the testing code was inserted
 */
-void GyroTurn(double deg){
+void GyroTurn(double deg, double speed){
     deg *= 10.0;
     
     double gyroVal = fabs(Gyroscope.value(vex::analogUnits::range12bit));
@@ -46,6 +46,7 @@ void GyroTurn(double deg){
         if(motorSpeed <= 30.0){
             motorSpeed = 30.0;
         }
+        motorSpeed *= speed;
         RightChassis.spin(vex::directionType::rev, motorSpeed, vex::velocityUnits::rpm);
         LeftChassis.spin(vex::directionType::fwd, motorSpeed,vex::velocityUnits::rpm);
         
