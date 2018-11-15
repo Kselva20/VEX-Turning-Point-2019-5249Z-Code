@@ -1,4 +1,9 @@
-//11/15/2018
+/*
+ *PID Gyroscope Code (Draft #1)
+ *@author Karthik Selvaraj
+ *November 15, 2018
+ *Changes- This is the first draft
+*/
 void GyroTurn(double deg){
     deg *= 10.0;
     
