@@ -7,16 +7,16 @@
 */
 
 void PIDChassis(double dist){
-    RightChassis.resetRotation();
+    RightChassis.resetRotation(); //motor encoder values are set to zero
     LeftChassis.resetRotation();
     
-    double goal = (180*dist)/(2*M_PI);
+    double goal = (180*dist)/(2*M_PI); 
     
     double pGain = 30.0;
     double iGain = 0.0;
     double dGain = 0.0;
     
-    double errorR = goal - RightChassis.rotation(vex::rotationUnits::deg);
+    double errorR = goal - RightChassis.rotation(vex::rotationUnits::deg); 
     double errorL = goal - LeftChassis.rotation(vex::rotationUnits::deg);
     double errorSum = 0.0;
     double oldError = RightChassis.rotation(vex::rotationUnits::deg);
@@ -38,8 +38,8 @@ void PIDChassis(double dist){
         double avgError = ((errorR + errorL)/2);
         double change = avgError - oldError;
         double difference = RightChassis.rotation(vex::rotationUnits::deg) - LeftChassis.rotation(vex::rotationUnits::deg);
-        double motorSpeed = (avgError*pGain) + (errorSum*iGain) + (change*dGain);
-        RightChassis.spin(vex::directionType::fwd, motorSpeed, vex::velocityUnits::dps);
+        double motorSpeed = (avgError*pGain) + (errorSum*iGain) + (change*dGain);//the bot determines the speed at which the motors have to spin
+        RightChassis.spin(vex::directionType::fwd, motorSpeed, vex::velocityUnits::dps); //the bot tries to move at the determined speed in order to reach the target
         LeftChassis.spin(vex::directionType::fwd, motorSpeed+ difference,vex::velocityUnits::dps);
         
         oldError = avgError;
@@ -66,7 +66,7 @@ void PIDChassis(double dist){
             int add = (i-1)*10;
             char str[20];
             Brain.Screen.printAt(1,40 + add, true, str, "%lf", currentTime);
-            Brain.resetTimer();
+            Brain.resetTimer(); //this prints the time of oscilation in one direction
         }
         oldSpeed = motorSpeed;
         i++;
@@ -75,6 +75,6 @@ void PIDChassis(double dist){
     LeftChassis.stop(vex::brakeType::brake);
     RightChassis.stop(vex::brakeType::brake);
     
-    RightChassis.resetRotation();
+    RightChassis.resetRotation(); //sets the encoder values to zero
     LeftChassis.resetRotation();
 }
