@@ -21,7 +21,7 @@ void GyroTurn(double deg){
     double errorSum = 0.0;
     double oldError = 0.0;
     
-    while(error > 0.0){
+    while(error > 0.0){ //if the bot/gyroscope is not on target, this code exxecutes, and attempts to correct the bot.
         gyroVal = fabs(Gyroscope.value(vex::analogUnits::range12bit));
         current = gyroVal - org;
         error = goal - current;
@@ -30,12 +30,12 @@ void GyroTurn(double deg){
             errorSum = 0.0;
         }
        
-        double change = error - oldError;
+        double change = error - oldError; 
         
         double motorSpeed = (error*pGain) + ((1.0/errorSum)*(iGain)) + (change*dGain);
         if(motorSpeed <= 30.0){
             motorSpeed = 30.0;
-        }
+        } //this code determines how fast the bot should go in order for the bot to correct itself
         RightChassis.spin(vex::directionType::rev, motorSpeed, vex::velocityUnits::rpm);
         LeftChassis.spin(vex::directionType::fwd, motorSpeed,vex::velocityUnits::rpm);
         
