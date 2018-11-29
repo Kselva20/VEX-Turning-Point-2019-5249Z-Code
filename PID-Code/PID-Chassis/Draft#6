@@ -15,7 +15,7 @@ void PIDChassis(double dist){
     RightChassis.resetRotation();
     LeftChassis.resetRotation();
 
-    double goal = (90*dist)/(M_PI);
+    double goal = (90*dist)/(M_PI); //this is the target distance the bot has to go
     
     double pGain = 0.6*(0.3713636364);
     double iGain = 0.5*(0.3713636364);
@@ -85,6 +85,6 @@ void PIDChassis(double dist){
     LeftChassis.stop(vex::brakeType::brake);
     RightChassis.stop(vex::brakeType::brake);
     
-    RightChassis.resetRotation();
+    RightChassis.resetRotation(); //the motor encoder values are set to zero
     LeftChassis.resetRotation();
 }
