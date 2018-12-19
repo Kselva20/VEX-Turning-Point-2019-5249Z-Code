@@ -1,0 +1,100 @@
+#include "robot-config.h"    
+#include "G:\Turning Point\Testers.vex"
+    
+boolean countLift = false;
+void liftConstant(){
+    countLift = !countLift;
+}
+
+double flywheelSpeed = 0.0;
+void flySpeedInc(){
+    flywheelSpeed += 10.0;
+}
+
+void flySpeedDec(){
+    flywheelSpeed -= 10.0;
+}
+
+int main() {
+    MainUser.ButtonY.pressed(liftConstant);
+    MainUser.ButtonX.pressed(flySpeedInc);
+    MainUser.ButtonB.pressed(flySpeedDec);
+    while(true){
+        
+        //Chassis Control
+        int leftSpeedMainUser = int(MainUser.Axis3.position(vex::percentUnits::pct)) + ((MainUser.Axis1.position(vex::percentUnits::pct)) + (MainUser.Axis2.position(vex::percentUnits::pct)));
+        int rightSpeedMainUser = int(MainUser.Axis3.position(vex::percentUnits::pct)) - ((MainUser.Axis1.position(vex::percentUnits::pct)) + (MainUser.Axis2.position(vex::percentUnits::pct)));
+        
+        if(leftSpeedMainUser > 10 or leftSpeedMainUser < -10){
+            LeftChassis.spin(vex::directionType::fwd,leftSpeedMainUser,vex::velocityUnits::pct);
+        }
+        else{
+            LeftChassis.spin(vex::directionType::fwd,0,vex::velocityUnits::pct);
+        }
+
+        if(rightSpeedMainUser > 10 or rightSpeedMainUser < -10){
+            RightChassis.spin(vex::directionType::fwd,rightSpeedMainUser,vex::velocityUnits::pct);
+        }
+        else{
+            RightChassis.spin(vex::directionType::fwd,0,vex::velocityUnits::pct);
+        }
+        
+        
+        
+        //Lift Control
+        if(countLift){
+            LeftLift.spin(vex::directionType::rev,100,vex::velocityUnits::rpm);
+            RightLift.spin(vex::directionType::rev,100,vex::velocityUnits::rpm);
+        }
+        else if(MainUser.ButtonL1.pressing()){
+            LeftLift.spin(vex::directionType::fwd,180,vex::velocityUnits::rpm);
+            RightLift.spin(vex::directionType::fwd,180,vex::velocityUnits::rpm);
+        }
+        else if(MainUser.ButtonL2.pressing()){
+            LeftLift.spin(vex::directionType::rev,140,vex::velocityUnits::rpm);
+            RightLift.spin(vex::directionType::rev,140,vex::velocityUnits::rpm);
+        }
+        else{
+            LeftLift.stop(vex::brakeType::hold);
+            RightLift.stop(vex::brakeType::hold);
+        }
+        
+        
+        
+        //Conveyor Belt Control
+        if(MainUser.ButtonX.pressing()){
+            ConveyorBelt.spin(vex::directionType::fwd,200,vex::velocityUnits::rpm);
+        }
+        else if(MainUser.ButtonY.pressing()){
+            ConveyorBelt.spin(vex::directionType::rev,200,vex::velocityUnits::rpm);
+        }
+        else{
+            ConveyorBelt.stop(vex::brakeType::hold);
+        } 
+        
+        
+        
+        //Main User Claw Control 
+        if(MainUser.ButtonR1.pressing()){
+            Claw.spin(vex::directionType::fwd,140,vex::velocityUnits::rpm);
+        }
+        else if(MainUser.ButtonR2.pressing()){
+            Claw.spin(vex::directionType::rev,140,vex::velocityUnits::rpm);
+        }
+        else{
+            Claw.stop(vex::brakeType::hold);
+        }
+        
+        
+        
+        //FLYWHEEL TESTER
+        if(SecondUser.ButtonR1.pressing()){
+            FlywheelTop.spin(vex::directionType::fwd,flywheelSpeed, vex::velocityUnits::rpm);
+            FlywheelBot.spin(vex::directionType::fwd,flywheelSpeed, vex::velocityUnits::rpm);
+        }
+        else{
+            FlywheelBot.stop(vex::brakeType::coast);
+            FlywheelTop.stop(vex::brakeType::coast);
+        }
+    }
+}
