@@ -17,7 +17,7 @@ void flySpeedDec(){
 
 int main() {
     MainUser.ButtonY.pressed(liftConstant);
-    MainUser.ButtonX.pressed(flySpeedInc);
+    MainUser.ButtonA.pressed(flySpeedInc);
     MainUser.ButtonB.pressed(flySpeedDec);
     while(true){
         
