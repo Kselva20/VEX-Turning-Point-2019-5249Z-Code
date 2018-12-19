@@ -1,0 +1,37 @@
+vex::brain Brain;
+vex::controller MainUser = vex::controller();
+
+
+vex::motor Claw = vex::motor(vex::PORT10,vex::gearSetting::ratio18_1,false);
+
+vex::motor RightChassis = vex::motor(vex::PORT8,vex::gearSetting::ratio18_1,true);
+vex::motor LeftChassis = vex::motor(vex::PORT3,vex::gearSetting::ratio18_1,false);
+
+vex::motor RightLift = vex::motor(vex::PORT6,vex::gearSetting::ratio18_1,false);
+vex::motor LeftLift = vex::motor(vex::PORT5,vex::gearSetting::ratio18_1,true);
+
+vex::motor ConveyorBelt = vex::motor(vex::PORT4,vex::gearSetting::ratio18_1,true);
+
+vex::motor FlywheelTop = vex::motor(vex::PORT2,vex::gearSetting::ratio18_1,false);
+vex::motor FlywheelBot = vex::motor(vex::PORT1,vex::gearSetting::ratio18_1,false);
+
+vex::timer Timer = vex::timer();
+
+vex::gyro Gyroscope = vex::gyro(Brain.ThreeWirePort.A);
+
+vex::accelerometer AccelX1 = vex::accelerometer(Brain.ThreeWirePort.B);
+vex::accelerometer AccelY1 = vex::accelerometer(Brain.ThreeWirePort.C);
+
+vex::accelerometer AccelX2 = vex::accelerometer(Brain.ThreeWirePort.D);
+vex::accelerometer AccelY2 = vex::accelerometer(Brain.ThreeWirePort.E);
+
+vex::accelerometer AccelX3 = vex::accelerometer(Brain.ThreeWirePort.F);
+vex::accelerometer AccelY3 = vex::accelerometer(Brain.ThreeWirePort.G);
+vex::vision::signature SIG_1 (1, 0, 0, 0, 0, 0, 0, 2.799999952316284, 0);
+vex::vision::signature SIG_2 (2, 0, 0, 0, 0, 0, 0, 1.7000000476837158, 0);
+vex::vision::signature SIG_3 (3, 0, 0, 0, 0, 0, 0, 3, 0);
+vex::vision::signature SIG_4 (4, 0, 0, 0, 0, 0, 0, 3, 0);
+vex::vision::signature SIG_5 (5, 0, 0, 0, 0, 0, 0, 3, 0);
+vex::vision::signature SIG_6 (6, 0, 0, 0, 0, 0, 0, 3, 0);
+vex::vision::signature SIG_7 (7, 0, 0, 0, 0, 0, 0, 3, 0);
+vex::vision Vision (vex::PORT16, 50, SIG_1, SIG_2, SIG_3, SIG_4, SIG_5, SIG_6, SIG_7);
