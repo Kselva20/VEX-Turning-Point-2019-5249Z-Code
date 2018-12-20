@@ -13,12 +13,12 @@ void prep(){
 
 int position(){
     while(true){
-        double accX1 = (AccelX1.value(vex::analogUnits::range12bit) - 2041.0)/271.0;
-        double accY1 = (AccelY1.value(vex::analogUnits::range12bit) - 2054.0)/268.0;
-        double accX2 = (AccelX2.value(vex::analogUnits::range12bit) - 2051.0)/273.0;
-        double accY2 = (AccelY2.value(vex::analogUnits::range12bit) - 2052.0)/271.0;
-        double accX3 = (AccelX3.value(vex::analogUnits::range12bit) - 2048.0)/272.0;
-        double accY3 = (AccelY3.value(vex::analogUnits::range12bit) - 2050.0)/273.0;
+        double accX1 = ((AccelX1.value(vex::analogUnits::range12bit) - 2041.0)/271.0)*9.80665;
+        double accY1 = ((AccelY1.value(vex::analogUnits::range12bit) - 2054.0)/268.0)*9.80665;
+        double accX2 = ((AccelX2.value(vex::analogUnits::range12bit) - 2051.0)/273.0)*9.80665;
+        double accY2 = ((AccelY2.value(vex::analogUnits::range12bit) - 2052.0)/271.0)*9.80665;
+        double accX3 = ((AccelX3.value(vex::analogUnits::range12bit) - 2048.0)/272.0)*9.80665;
+        double accY3 = ((AccelY3.value(vex::analogUnits::range12bit) - 2050.0)/273.0)*9.80665;
         
         double threshold = 1.0;
         /*
