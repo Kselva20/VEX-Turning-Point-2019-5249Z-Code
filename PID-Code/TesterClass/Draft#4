@@ -13,12 +13,12 @@ void prep(){
 
 int position(){
     while(true){
-        double accX1 = ;
-        double accY1 = 0.0;
-        double accX2 = 0.0;
-        double accY2 = 0.0;
-        double accX3 = 0.0;
-        double accY3 = 0.0;
+        double accX1 = AccelX1.value(vex::analogUnits::range12bit) - 2041.0;
+        double accY1 = AccelY1.value(vex::analogUnits::range12bit) - 2054.0;
+        double accX2 = AccelX2.value(vex::analogUnits::range12bit) - 2051.0;
+        double accY2 = AccelY2.value(vex::analogUnits::range12bit) - 2052.0;
+        double accX3 = AccelX3.value(vex::analogUnits::range12bit) - 2048.0;
+        double accY3 = AccelY3.value(vex::analogUnits::range12bit) - 2050.0;
         
         double threshold = 1.0;
         /*
@@ -466,13 +466,13 @@ int PIDFlywheel(){
 
 //Tester Code Area
 int main() {
-    /*
+    
     vex::task positionTracking(position);
     while(true){
         Brain.Screen.printAt(1, 30, true, "(%f , %f)", currentPositionX, currentPositionY);
     }
-    */
     
+    /*
     while(true){
         double accX1 = AccelX1.value(vex::analogUnits::range12bit);
         Brain.Screen.printAt(1, 45, true, "acc1 X: %f", accX1);
@@ -492,4 +492,5 @@ int main() {
         double accY3 = AccelY3.value(vex::analogUnits::range12bit);
         Brain.Screen.printAt(1, 120, true, "acc3 Y: %f", accY3);
     }
+    */
 }
