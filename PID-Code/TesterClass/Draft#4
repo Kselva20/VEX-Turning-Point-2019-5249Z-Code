@@ -28,10 +28,10 @@ int position(){
         double accX = (accX1 + accX2 + accX3)/3.0;
         double accY = (accY1 + accY2 + accY3)/3.0;
         
-        if(accX < threshold){
+        if(fabs(accX) < threshold){
             accX = 0.0;
         }
-        if(accY < threshold){
+        if(fabs(accY) < threshold){
             accY = 0.0;
         }
         
