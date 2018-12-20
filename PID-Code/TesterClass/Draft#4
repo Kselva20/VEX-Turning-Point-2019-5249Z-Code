@@ -1,0 +1,495 @@
+#include "robot-config.h"
+#include <math.h>
+double currentPositionX = 0.0;
+double currentPositionY = 0.0;
+
+
+void prep(){
+    Gyroscope.startCalibration();
+    vex::task::sleep(5000);
+}
+
+
+
+int position(){
+    while(true){
+        double accX1 = ;
+        double accY1 = 0.0;
+        double accX2 = 0.0;
+        double accY2 = 0.0;
+        double accX3 = 0.0;
+        double accY3 = 0.0;
+        
+        double threshold = 1.0;
+        /*
+        * INSERT ACCELEROMETER CALIBRATION CODE
+        * NOTE-> Remember to invert values based on accelerometer positioning
+        */
+        double accX = (accX1 + accX2 + accX3)/3.0;
+        double accY = (accY1 + accY2 + accY3)/3.0;
+        
+        if(accX < threshold){
+            accX = 0.0;
+        }
+        if(accY < threshold){
+            accY = 0.0;
+        }
+        
+        double distX = 0.0;
+        double distY = 0.0;
+        double prevAccX = 0.0;
+        double prevAccY = 0.0;
+        double prevVelX = 0.0;
+        double prevVelY = 0.0;
+        double gyroVal = Gyroscope.value(vex::analogUnits::range12bit);
+        if(gyroVal < 0.0){
+            gyroVal += 3600.0;
+        }
+        vex::task::sleep(20);
+        
+        double curDistX;
+        double curDistY;
+
+        double velX = ((accX + prevAccX)/2.0)*0.02;
+        double velY = ((accY + prevAccY)/2.0)*0.02;
+        curDistX = ((velX + prevVelX)/2.0)*0.02;
+        curDistY = ((velY + prevVelY)/2.0)*0.02;
+
+        curDistX /= 0.0254;
+        curDistY /= 0.0254;
+
+        distX += curDistX;
+        distY += curDistY;
+        prevAccX = accX;
+        prevAccY = accY;
+        prevVelX = velX;
+        prevVelY = velY;
+
+        if(gyroVal >= 3150.0 && gyroVal <= 3599.0 || gyroVal >= 0.0 && gyroVal <= 450.0 || gyroVal >= 1350 && gyroVal <= 2250){
+            currentPositionX += distY;
+            currentPositionY += distX;
+        }
+        else{
+            currentPositionX += distX;
+            currentPositionY += distY;
+        }
+    }
+    return 0;
+}
+
+
+
+
+
+//Gyroscope Turning
+//Positive Direction is right, Negative is left
+void gyroTurn(double deg){
+    deg *= 10.0;
+    double gyroVal = Gyroscope.value(vex::analogUnits::range12bit);
+    double current = gyroVal;
+    
+    double difference = (deg - current);
+    
+    double pGain = 0.33*(0.59);
+    double iGain = (0.9649090909)/2.0;
+    double dGain = (0.9649090909)/3.0;
+    
+    double error = (deg-current);
+    double errorSum = 0.0;
+    double oldError = 0.0;
+    
+    double correction = 0.0;
+    Brain.resetTimer();
+    while(error != 0.0){
+        gyroVal = Gyroscope.value(vex::analogUnits::range12bit);
+        Brain.Screen.printAt(1, 30, true, "%f", gyroVal);
+        current = gyroVal;
+        
+        error = (deg-current);
+        errorSum += (error);
+        if(error == 0.0){
+            errorSum = 0.0;
+        }
+       
+        double change = error - oldError;
+        
+        double motorSpeed = pGain*(1.0+(1.0/(errorSum *iGain))+(change*dGain))*error;
+        //correction = (fabs(RightChassis.rotation(vex::rotationUnits::deg))-fabs(LeftChassis.rotation(vex::rotationUnits::deg)))/2.0;
+        RightChassis.spin(vex::directionType::rev, motorSpeed, vex::velocityUnits::rpm);
+        LeftChassis.spin(vex::directionType::fwd, motorSpeed + correction,vex::velocityUnits::rpm);
+        if(fabs(motorSpeed) <=1.0 && fabs(current) >= fabs(0.9*deg)){break;}
+        oldError = error;
+    }
+    RightChassis.stop(vex::brakeType::brake);
+    LeftChassis.stop(vex::brakeType::brake);
+}
+
+
+
+//PID FWD & REV Chassis Movement
+void PIDChassis(double dist){
+    RightChassis.resetRotation();
+    LeftChassis.resetRotation();
+
+    double goal = (90*dist)/(M_PI);
+    
+    double pGain = 0.6*(0.7715454545);
+    double iGain = 0.5*(0.7715454545);
+    double dGain = 0.125*(0.7715454545);
+
+    double error = fabs(goal) - fabs(RightChassis.rotation(vex::rotationUnits::deg));
+    double errorSum = 0.0;
+    double oldError = RightChassis.rotation(vex::rotationUnits::deg);
+    
+    double correction = 0.0;
+    
+    while(error > 0.0){
+        error = fabs(goal) - fabs(RightChassis.rotation(vex::rotationUnits::deg));
+        errorSum += (error);
+        if(error == 0.0){
+            errorSum = 0.0;
+        }
+       
+        double change = error - oldError;
+        
+        double motorSpeed = (error*pGain) + ((1.0/errorSum)*(iGain)) + (change*dGain);
+        
+        correction = (fabs(RightChassis.rotation(vex::rotationUnits::deg))-fabs(LeftChassis.rotation(vex::rotationUnits::deg)))/2.0;
+        if(motorSpeed < 1.75){break;}
+        if(goal < 0.0){
+            motorSpeed *= -1.0;
+            correction *= -0.75;
+            
+        }
+        RightChassis.spin(vex::directionType::fwd, motorSpeed, vex::velocityUnits::rpm);
+        LeftChassis.spin(vex::directionType::fwd, motorSpeed +correction,vex::velocityUnits::rpm);
+        
+        oldError = error;
+        
+    }
+    
+    LeftChassis.stop(vex::brakeType::brake);
+    RightChassis.stop(vex::brakeType::brake);
+    
+    RightChassis.resetRotation();
+    LeftChassis.resetRotation();
+}
+
+
+
+//PID UP & DWN Lift Movement
+void PIDLift(double height){
+    RightLift.resetRotation();
+    LeftLift.resetRotation();
+    
+    if(height >0.0){height += 1.0;}
+    double goal = (180*height)/(1.75*M_PI);
+    
+    double pGain = 0.33*(5.0);
+    double iGain = (0.5311818182)/2.0;
+    double dGain = (0.5311818182)/3.0;
+    
+    double error = fabs(goal) - fabs(RightLift.rotation(vex::rotationUnits::deg));
+    double errorSum = 0.0;
+    
+    double oldError = RightLift.rotation(vex::rotationUnits::deg);
+    
+    while(error > 0.0){
+        error = fabs(goal) - fabs(RightLift.rotation(vex::rotationUnits::deg));
+        errorSum += error;
+        
+        double change = error - oldError;
+        
+        double motorSpeed = (error*pGain) + (errorSum*iGain) + (change*dGain);
+        //double motorSpeed = pGain*(1.0+(1.0/(errorSum *iGain))+(change*dGain))*error;
+        if(motorSpeed < 1.0){break;}
+        if(goal < 0.0){motorSpeed*=-1.0;}
+        
+        RightLift.spin(vex::directionType::fwd, motorSpeed, vex::velocityUnits::rpm);
+        LeftLift.spin(vex::directionType::fwd, motorSpeed ,vex::velocityUnits::rpm);
+        
+        oldError = error;
+    }
+    LeftLift.stop(vex::brakeType::coast);
+    RightLift.stop(vex::brakeType::coast);
+    vex::task::sleep(200);
+    LeftLift.stop(vex::brakeType::hold);
+    RightLift.stop(vex::brakeType::hold);
+    
+    RightLift.resetRotation();
+    LeftLift.resetRotation();
+}
+
+
+
+//PID Claw Movement
+void PIDClaw(double dir){
+    Claw.resetRotation();
+
+    double goal = dir*180.0;
+    
+    double pGain = 0.2355*(3.75);
+    double iGain = 0.5*(0.3743636364);
+    double dGain = (0.3743636364)/3.0;
+
+    double error = fabs(goal) - fabs(Claw.rotation(vex::rotationUnits::deg));
+    double errorSum = 0.0;
+    double oldError = Claw.rotation(vex::rotationUnits::deg);
+    
+    while(error > 0.0){
+        error = fabs(goal) - fabs(Claw.rotation(vex::rotationUnits::deg));
+        errorSum += (error);
+        if(error == 0.0){
+            errorSum = 0.0;
+        }
+       
+        double change = error - oldError;
+        
+        double motorSpeed = (error*pGain) + ((1.0/errorSum)*(iGain)) + (change*dGain);
+        
+        if(motorSpeed < 1.0){break;}
+        if(goal < 0.0){
+            motorSpeed *= -1.0;
+        }
+        Claw.spin(vex::directionType::fwd, motorSpeed, vex::velocityUnits::rpm);
+        
+        oldError = error;    
+    }
+    
+    Claw.stop(vex::brakeType::brake);
+    
+    Claw.resetRotation();
+}
+
+
+
+//Vision Sensor Code NV
+void VisionSearch(){
+    double height = 15.5/12.0;
+    VisionFlag.takeSnapshot(BLUEFLAG);
+    double yPos = VisionFlag.largestObject.centerY;
+    
+    /*INSERT CENTERING CODE*/
+    
+    
+    double dist = (height)/(tan(20.0-atan((1.0-(yPos/100.0))*tan(35.0/2.0))));
+    Brain.Screen.printAt(1,30,true,"%f", yPos);
+    double speed = sqrt((-9.80665*dist*dist)/(2.0*cos(45.0)*cos(45.0))*(height-(dist*tan(45.0))));
+    speed = (-10.0*sqrt(601.07 - (32.15*speed))) + 272.0;
+    Brain.Screen.printAt(1,40,true, "%f", speed);
+    FlywheelTop.spin(vex::directionType::fwd, speed, vex::velocityUnits::rpm);
+    FlywheelBot.spin(vex::directionType::fwd, speed, vex::velocityUnits::rpm);
+    vex::task::sleep(2000);
+    ConveyorBelt.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+    //ShootBall();
+}
+
+
+
+//Ball Shooting Code NV
+void ShootBall(){
+    
+}
+
+
+
+void findBall(double yPos){
+    /*ENTER CENTERING CODE*/
+    double height = 0.0;
+    double theta = 20.0;
+    double dist = (height)*(theta - atan((1.0-(yPos/100.0))*tan(35.0/2.0)));
+    PIDChassis(-dist);
+}
+
+
+
+void blueFar(){
+    FlywheelTop.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);
+    FlywheelBot.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);
+    RightLift.spin(vex::directionType::rev, 60, vex::velocityUnits::pct);
+    LeftLift.spin(vex::directionType::rev, 60, vex::velocityUnits::pct);
+    
+    PIDChassis(-40.0); 
+    vex::task::sleep(250);
+    ConveyorBelt.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+    RightLift.stop(vex::brakeType::hold);
+    LeftLift.stop(vex::brakeType::hold);
+    Claw.spin(vex::directionType::rev, 60, vex::velocityUnits::pct);
+    PIDChassis(20.0);
+    Claw.stop(vex::brakeType::brake);
+    ConveyorBelt.stop(vex::brakeType::hold);
+    vex::task::sleep(20);
+    gyroTurn(140.3); 
+    vex::task::sleep(20);
+    PIDChassis(29.5);
+    vex::task::sleep(20);
+    PIDLift(5.0);
+    Claw.spin(vex::directionType::fwd, 70, vex::velocityUnits::pct);
+    vex::task::sleep(20);
+    PIDLift(-5.0);
+    vex::task::sleep(20);
+    PIDChassis(-20.0);
+    /*
+    PIDChassis(-28.0);
+    vex::task::sleep(20);
+    gyroTurn(94.5);
+    vex::task::sleep(20);
+    PIDChassis(14.0);
+    Claw.spin(vex::directionType::fwd, 70, vex::velocityUnits::pct);
+    PIDLift(13.5);
+    Claw.stop(vex::brakeType::hold);
+    vex::task::sleep(20);
+    PIDChassis(6.0);
+    PIDLift(-2.5);
+    vex::task::sleep(20);
+    PIDChassis(-6.0);
+    PIDLift(-11.0);
+    */
+}
+
+void redFar(){
+    FlywheelTop.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);
+    FlywheelBot.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);
+    RightLift.spin(vex::directionType::rev, 60, vex::velocityUnits::pct);
+    LeftLift.spin(vex::directionType::rev, 60, vex::velocityUnits::pct);
+    
+    PIDChassis(-40.0); 
+    vex::task::sleep(250); 
+    ConveyorBelt.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+    RightLift.stop(vex::brakeType::hold);
+    LeftLift.stop(vex::brakeType::hold);
+    Claw.spin(vex::directionType::rev, 60, vex::velocityUnits::pct);
+    PIDChassis(20.0);
+    Claw.stop(vex::brakeType::brake);
+    ConveyorBelt.stop(vex::brakeType::hold);
+    vex::task::sleep(20);
+    gyroTurn(-140.3); 
+    vex::task::sleep(20);
+    PIDChassis(29.5);
+    vex::task::sleep(20);
+    PIDLift(5.0);
+    Claw.spin(vex::directionType::fwd, 70, vex::velocityUnits::pct);
+    vex::task::sleep(20);
+    PIDLift(-5.0);
+    vex::task::sleep(20);
+    PIDChassis(-20.0);
+}
+
+void blueClose(){
+    FlywheelTop.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);
+    FlywheelBot.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);
+    RightLift.spin(vex::directionType::rev, 60, vex::velocityUnits::pct);
+    LeftLift.spin(vex::directionType::rev, 60, vex::velocityUnits::pct);
+    
+    PIDChassis(-40.0);
+    vex::task::sleep(300);
+    ConveyorBelt.spin(vex::directionType::fwd, 40, vex::velocityUnits::pct);
+    RightLift.stop(vex::brakeType::brake);
+    LeftLift.stop(vex::brakeType::brake);
+    Claw.spin(vex::directionType::rev, 60, vex::velocityUnits::pct);
+    PIDChassis(18.0);
+    Claw.stop(vex::brakeType::brake);
+    ConveyorBelt.stop(vex::brakeType::hold);
+    vex::task::sleep(20);
+    gyroTurn(-89.0);
+    vex::task::sleep(20);
+    PIDChassis(18.0);
+    PIDLift(1.0);
+    vex::task::sleep(20);
+    Claw.spin(vex::directionType::fwd, 70, vex::velocityUnits::pct);
+    vex::task::sleep(500);
+    Claw.stop(vex::brakeType::hold);
+    PIDLift(-0.5);
+    PIDChassis(-18.0);
+    //Guess
+    gyroTurn(0.0);
+    PIDChassis(18.5);
+    gyroTurn(-87.0);
+    //PIDChassis(-9.0);
+    ConveyorBelt.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+    vex::task::sleep(500);
+    PIDChassis(36.0);
+    ConveyorBelt.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+    vex::task::sleep(500);
+    PIDChassis(35.0);
+}
+
+void redClose(){
+    FlywheelTop.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);
+    FlywheelBot.spin(vex::directionType::fwd, 200, vex::velocityUnits::rpm);
+    RightLift.spin(vex::directionType::rev, 60, vex::velocityUnits::pct);
+    LeftLift.spin(vex::directionType::rev, 60, vex::velocityUnits::pct);
+    
+    PIDChassis(-40.0);
+    vex::task::sleep(300);
+    ConveyorBelt.spin(vex::directionType::fwd, 40, vex::velocityUnits::pct);
+    RightLift.stop(vex::brakeType::brake);
+    LeftLift.stop(vex::brakeType::brake);
+    Claw.spin(vex::directionType::rev, 60, vex::velocityUnits::pct);
+    PIDChassis(18.0);
+    Claw.stop(vex::brakeType::brake);
+    ConveyorBelt.stop(vex::brakeType::hold);
+    vex::task::sleep(20);
+    gyroTurn(89.0);
+    vex::task::sleep(20);
+    PIDChassis(18.0);
+    PIDLift(1.0);
+    vex::task::sleep(20);
+    Claw.spin(vex::directionType::fwd, 70, vex::velocityUnits::pct);
+    vex::task::sleep(500);
+    Claw.stop(vex::brakeType::hold);
+    PIDLift(-0.5);
+    PIDChassis(-18.0);
+    //Guess
+    gyroTurn(0.0);
+    PIDChassis(18.5);
+    gyroTurn(87.0);
+    //PIDChassis(-9.0);
+    ConveyorBelt.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+    vex::task::sleep(250);
+    PIDChassis(36.0);
+    ConveyorBelt.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+    vex::task::sleep(500);
+    PIDChassis(35.0);
+}
+
+
+
+int PIDFlywheel(){
+    while(true){
+        
+    }
+    return 0;
+}
+
+
+
+//Tester Code Area
+int main() {
+    /*
+    vex::task positionTracking(position);
+    while(true){
+        Brain.Screen.printAt(1, 30, true, "(%f , %f)", currentPositionX, currentPositionY);
+    }
+    */
+    
+    while(true){
+        double accX1 = AccelX1.value(vex::analogUnits::range12bit);
+        Brain.Screen.printAt(1, 45, true, "acc1 X: %f", accX1);
+        
+        double accX2 = AccelX2.value(vex::analogUnits::range12bit);
+        Brain.Screen.printAt(1, 60, true, "acc2 X: %f", accX2);
+        
+        double accX3 = AccelX3.value(vex::analogUnits::range12bit);
+        Brain.Screen.printAt(1, 75, true, "acc3 X: %f", accX3);
+        
+        double accY1 = AccelY1.value(vex::analogUnits::range12bit);
+        Brain.Screen.printAt(1, 90, true, "acc1 Y: %f", accY1);
+        
+        double accY2 = AccelY2.value(vex::analogUnits::range12bit);
+        Brain.Screen.printAt(1, 105, true, "acc2 Y: %f", accY2);
+        
+        double accY3 = AccelY3.value(vex::analogUnits::range12bit);
+        Brain.Screen.printAt(1, 120, true, "acc3 Y: %f", accY3);
+    }
+}
