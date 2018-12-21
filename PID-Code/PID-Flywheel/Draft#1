@@ -1,0 +1,34 @@
+double target = 0.0;
+int PIDFlywheel(){
+    double pGain = 0.0;
+    double iGain = 0.0;
+    double dGain = 0.0;
+    double current = FlywheelTop.velocity(vex::velocityUnits::rpm);
+    double goal = 0.0;
+    /*ENTER EQUATION TO FIND SPEED FROM DISTANCE*/
+    double error = goal - current;
+    double errorSum = 0.0;
+    double change = error;
+    double oldError = 0.0;
+    while(true){
+        current = FlywheelTop.velocity(vex::velocityUnits::rpm);
+        goal = 0.0;
+        /*ENTER EQUATION TO FIND SPEED FROM DISTANCE*/
+        error = goal - current;
+        errorSum += error;
+        if(error >= goal-8 && error <= goal+8){
+            errorSum = 0.0;
+        }
+        change = error - oldError;
+        oldError = error;
+        
+        double motorSpeed = pGain*(1.0+(1.0/(errorSum *iGain))+(change*dGain))*error;
+        if(motorSpeed < 0.0){
+            motorSpeed += current;
+        }
+        
+        FlywheelTop.spin(vex::directionType::rev, motorSpeed, vex::velocityUnits::rpm);
+        FlywheelBot.spin(vex::directionType::rev, motorSpeed, vex::velocityUnits::rpm);
+    }
+    return 0;
+}
