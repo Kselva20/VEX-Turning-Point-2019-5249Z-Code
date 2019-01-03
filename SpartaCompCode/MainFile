@@ -11,6 +11,7 @@
  * To do 3, now test the shoot method with the rest of the team. If the code does not work (if the flywheel just goes to speed 0) do the following:
  * Go to the getDistance method, and where you see the expression (yPos/100.0), change the 100.0 to 200.0
  * Test the code now, if it still does not work, then I can do it when I come back
+ * Also make sure these are correct: the variable int mode should equal 2, and when alliance is equal to 0, then you the red alliance (meaning the code first looks for blue flags to target)
 */
 #include "robot-config.h"
 #include <iostream>
