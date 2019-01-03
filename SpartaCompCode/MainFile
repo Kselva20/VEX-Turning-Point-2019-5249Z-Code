@@ -1,0 +1,962 @@
+/*
+ * DO NOT COMMENT THIS CODE PLEASE!!!
+ * To whoever will work with the code today, this is the main file of the sparta comp code
+ * The following things need to be done:
+ * 1. New codes need to be obtained for the red and blue flags
+ * 2. A code for the ball needs to be obtained
+ * 3. Test the pixel readings of the vision sensor
+ * To do 1 and 2, use the config code and open the vex vision sensor utility. then look up how to obtain a signature
+ * Remember to unfreeze the screen when a signature is obtained, otherwise it won't be saved.
+ * Make a new file and just put these three signatures there.
+ * To do 3, now test the shoot method with the rest of the team. If the code does not work (if the flywheel just goes to speed 0) do the following:
+ * Go to the getDistance method, and where you see the expression (yPos/100.0), change the 100.0 to 200.0
+ * Test the code now, if it still does not work, then I can do it when I come back
+*/
+#include "robot-config.h"
+#include <iostream>
+#include <math.h>
+#include <array>
+/*---------------------------------------------------------------------------*/
+/*                                                                           */
+/*        Description: Competition template for VCS VEX V5                    */
+/*                                                                           */
+/*---------------------------------------------------------------------------*/
+
+//Creates a competition object that allows access to Competition methods.
+vex::competition    Competition;
+
+int mode = 2;
+int oldMode = 0;
+
+int flag = 1;
+double xPosFlag = 0.0;
+double yPosFlag = 0.0;
+double distanceToFlag = 0.0;
+
+int alliance = 0;
+
+double currentPositionX = 0.0;
+double currentPositionY = 0.0;
+
+double flywheelSpeed = 200.0;
+bool notFiring = true;
+
+int ballCount = 1;
+
+double FOVXRad = 2 * atan(2.75/6.5);
+double FOVYRad = 2 * atan(3.375/6.5);
+
+double restingX1 = 0.0;
+double restingY1 = 0.0;
+double restingZ1 = 0.0;
+double restingX2 = 0.0;
+double restingY2 = 0.0;
+double restingZ2 = 0.0;
+
+/*---------------------------------------------------------------------------*/
+/*                                                                           */
+/*                          Pre-Autonomous Functions                         */
+/*                                                                           */
+/*  You may want to perform some actions before the competition starts.      */
+/*  Do them in the following function.  You must return from this function   */
+/*  or the autonomous and usercontrol tasks will not be started.  This       */
+/*  function is only called once after the cortex has been powered on and    */ 
+/*  not every time that the robot is disabled.                               */
+/*---------------------------------------------------------------------------*/
+
+void pre_auton( void ) {
+    Gyroscope.startCalibration();
+    vex::task::sleep(5000);
+    
+    restingX1 = AccelX1.value(vex::analogUnits::range12bit);
+    restingY1 = AccelY1.value(vex::analogUnits::range12bit);
+    restingZ1 = AccelZ1.value(vex::analogUnits::range12bit);
+    restingX2 = AccelX2.value(vex::analogUnits::range12bit);
+    restingY2 = AccelY2.value(vex::analogUnits::range12bit);
+    restingZ2 = AccelZ2.value(vex::analogUnits::range12bit);
+}
+
+/*---------------------------------------------------------------------------*/
+/*                                                                           */
+/*                              Helper Tasks                                 */
+/*                                                                           */
+/*  This task is used to control your robot during the autonomous phase of   */
+/*  a VEX Competition.                                                       */
+/*                                                                           */
+/*  You must modify the code to add your own robot specific commands here.   */
+/*---------------------------------------------------------------------------*/
+int PFly(){
+    while(true){
+        double current = FlywheelTop.velocity(vex::velocityUnits::rpm);
+        double error = flywheelSpeed - current;
+        
+        FlywheelTop.spin(vex::directionType::fwd, flywheelSpeed, vex::velocityUnits::rpm);
+        FlywheelBot.spin(vex::directionType::fwd, flywheelSpeed, vex::velocityUnits::rpm);
+        if(error > 8.0 && ConveyorBelt.velocity(vex::velocityUnits::pct) != 0.0){
+            ConveyorBelt.stop(vex::brakeType::hold);
+            ballCount--;
+        }
+    }
+    return 0;
+}
+
+
+
+int position3(){
+    double distX = 0.0;
+    double distY = 0.0;
+    double prevAccX = 0.0;
+    double prevAccY = 0.0;
+    double prevVelX = 0.0;
+    double prevVelY = 0.0;
+    double ANALOG_PER_G = 386.09/(830.0/3.0);
+    while(true){
+        //Brain.Screen.printAt(1, 30, true, "(%f , %f)", currentPositionX, currentPositionY);
+        double preAccX1 = AccelX1.value(vex::analogUnits::range12bit);
+        double preAccY1 = AccelY1.value(vex::analogUnits::range12bit);
+        double preAccZ1 = AccelZ1.value(vex::analogUnits::range12bit);
+        double preAccX2 = AccelX2.value(vex::analogUnits::range12bit);
+        double preAccY2 = AccelY2.value(vex::analogUnits::range12bit);
+        double preAccZ2 = AccelZ2.value(vex::analogUnits::range12bit);
+        
+        
+        double threshold = 3.0;
+        
+        double preAccZ = ((preAccZ1 - restingZ1) + (preAccZ2 - restingZ2))/2.0;
+        
+        if(fabs(preAccZ) <= threshold){
+            preAccZ = 0.0;
+        }
+        
+        double tiltAngle1 = acos((preAccZ1)/(restingZ1));
+        double tiltAngle2 = acos((preAccZ2)/(restingZ2));
+        
+        double tiltAngle = (tiltAngle1+tiltAngle2)/2.0;
+        
+        if(tiltAngle != 0.0){
+            double cosineTilt = cos(tiltAngle);
+            cosineTilt = (cosineTilt*180)/(M_PI);
+            
+            double tiltY1 = restingY1/cosineTilt;
+            double tiltY2 = restingY2/cosineTilt;
+            if(preAccY1 > tiltY1){
+                preAccY1 = preAccY1 - tiltY1;
+                preAccY2 = preAccY2 - tiltY2;
+                preAccX1 = 0.0;
+                preAccX2 = 0.0;
+            }
+            else if(preAccY1 < tiltY1){
+                cosineTilt = cos(M_PI - tiltAngle);
+                tiltY1 = restingY1/cosineTilt;
+                tiltY2 = restingY2/cosineTilt;
+                double diffY1 = fabs(restingY1 + tiltY1);
+                double diffY2 = fabs(restingY2 + tiltY2);
+                preAccY1 = restingY1 - diffY1;
+                preAccY2 = restingY2 - diffY2;
+                preAccX1 = 0.0;
+                preAccX2 = 0.0;
+            }
+            else{
+                double tiltX1 = restingX1/cosineTilt;
+                double tiltX2 = restingX2/cosineTilt;
+                if(preAccX1 > tiltX1){
+                    preAccX1 = preAccX1 - tiltX1;
+                    preAccX2 = preAccX2 - tiltX2;
+                }
+                else if(preAccX1 < tiltX1){
+                    cosineTilt = cos(M_PI - tiltAngle);
+                    tiltX1 = restingX1/cosineTilt;
+                    tiltX2 = restingX2/cosineTilt;
+                    double diffX1 = fabs(restingX1 + tiltX1);
+                    double diffX2 = fabs(restingX2 + tiltX2);
+                    preAccX1 = restingX1 - diffX1;
+                    preAccX2 = restingX2 - diffX2;
+                }
+            }
+        }
+        
+        double preAccX = (preAccX1 + preAccX2)/2.0;
+        double preAccY = (preAccY1 + preAccY2)/2.0;
+        
+        if(fabs(preAccX) < threshold){
+            preAccX1 = 0.0;
+            preAccX2 = 0.0;
+        }
+        
+        if(fabs(preAccY) < threshold){
+            preAccY1 = 0.0;
+            preAccY2 = 0.0;
+        }
+        /*
+         * NOTE: REVERSE BASED ON WHICH ACCELEROMETERS WE ARE USING
+         * NOTE: INSERT CALIBRATION CODE HERE OR ABOVE
+        */
+        double accX1 = -1.0*((preAccX1*ANALOG_PER_G));
+        double accY1 = (preAccY1*ANALOG_PER_G);
+        double accX2 = (preAccX2*ANALOG_PER_G);
+        double accY2 = -1.0*((preAccY2*ANALOG_PER_G));
+        
+        double accX = (accX1 + accX2)/2.0;
+        double accY = (accY1 + accY2)/2.0;
+        
+        if(accY < 0.0 && RightChassis.velocity(vex::velocityUnits::rpm) > 0.0 && LeftChassis.velocity(vex::velocityUnits::rpm) > 0.0){
+            accY *= -0.5;
+        }
+        else if(accY > 0.0 && RightChassis.velocity(vex::velocityUnits::rpm) < 0.0 && LeftChassis.velocity(vex::velocityUnits::rpm) < 0.0){
+            accY *= -0.5;
+        }
+        
+        double curDistX;
+        double curDistY;
+
+        double velX = ((accX + prevAccX)/2.0)*0.02;
+        double velY = ((accY + prevAccY)/2.0)*0.02;
+        curDistX = ((velX + prevVelX)/2.0)*0.02;
+        curDistY = ((velY + prevVelY)/2.0)*0.02;
+        
+        if(curDistX == 0.0){
+            distX = 0.0;
+        }
+        
+        if(curDistY == 0.0){
+            distY = 0.0;
+        }
+        distX += curDistX;
+        distY += curDistY;
+        prevAccX = accX;
+        prevAccY = accY;
+        prevVelX = velX;
+        prevVelY = velY;
+        
+        
+        
+        double gyroVal = Gyroscope.value(vex::analogUnits::range12bit);
+        
+        double gyroValRadY = ((gyroVal/10.0) * M_PI)/(180.0);
+        double gyroValRadX = (((gyroVal-90.0)/10.0) * M_PI)/(180.0);
+        
+        double changeYaccY = cos(gyroValRadY) * distY;
+        double changeXaccY = sin(gyroValRadY) * distY;
+        
+        double changeYaccX = sin(gyroValRadX) * distX;
+        double changeXaccX = cos(gyroValRadX) * distX;
+        
+        currentPositionY += (changeYaccY + changeYaccX);
+        currentPositionX += (changeXaccY + changeXaccX);
+        vex::task::sleep(20);
+    }
+    return 0;
+}
+
+
+
+double getSpeed(double distance, double height){
+    double speed = sqrt((-32.2 * distance * distance)/(2.0 * (1.0/2.0) * ((height - 1.15) - (distance * 1.0))));
+    speed = (((speed - 10.1)/0.581) * 5.0) + 100.0;
+    return speed;
+}
+
+double getDistance(double yPos, double height){
+    height = (height/12.0) - 1.15;
+    double thetaRad = (20.0 * M_PI)/180.0;
+    double distance = tan(thetaRad - atan((1.0 - (yPos/100.0))*tan(FOVYRad/2.0)));
+    distance = height/distance;
+    return distance;
+}
+
+void shoot(){
+    notFiring = false;
+    if(mode == 1){
+        double diffX = fabs(xPosFlag - currentPositionX);
+        double diffY = fabs(yPosFlag - currentPositionY);
+        double angle = atan(diffX/diffY);
+        angle = (angle * 180.0)/(M_PI);
+        //gyroTurn(angle);
+        distanceToFlag = sqrt((diffX*diffX) + (diffY*diffY));
+        distanceToFlag = distanceToFlag/12.0;
+        if(alliance == 0){
+            VisionFlag.takeSnapshot(BLUEFLAG);
+            if(VisionFlag.objectCount == 2){
+                ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                while(true){
+                    VisionFlag.takeSnapshot(BALL);
+                    if(VisionFlag.objectCount > 0){
+                        break;
+                    }
+                }
+                ConveyorBelt.stop(vex::brakeType::hold);
+                ballCount--;
+                
+                if(ballCount == 1){
+                    flywheelSpeed = getSpeed(distanceToFlag, 2.45);
+                    ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                    while(true){
+                        VisionFlag.takeSnapshot(BALL);
+                        if(VisionFlag.objectCount > 0){
+                            break;
+                        }
+                    }
+                    ConveyorBelt.stop(vex::brakeType::hold);
+                    ballCount--;
+                }
+            }
+            else if(VisionFlag.objectCount == 1){
+                double firstYPos = VisionFlag.largestObject.centerY;
+                VisionFlag.takeSnapshot(REDFLAG);
+                if(VisionFlag.objectCount == 2){
+                    double offYPos;
+                    bool haveOne = false;
+                    int ind1;
+                    int ind2;
+                    for(int i = 0; i < sizeof(VisionFlag.objects); i++){
+                        if((VisionFlag.objects[i].id) == 1 && haveOne == false){
+                            ind1 = i;
+                            haveOne = true;
+                        }
+                        else if((VisionFlag.objects[i].id) == 1 && haveOne == true){
+                            ind2 = i;
+                            break;
+                        }
+                    }
+                    double firstDiff = fabs(firstYPos - VisionFlag.objects[ind1].centerY);
+                    double secondDiff = fabs(firstYPos - VisionFlag.objects[ind2].centerY);
+                    
+                    if(firstDiff > secondDiff){
+                        offYPos = VisionFlag.objects[0].centerY;
+                    }
+                    else{
+                        offYPos = VisionFlag.objects[1].centerY;
+                    }
+                    
+                    if(firstYPos > offYPos){
+                        ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                        while(true){
+                            VisionFlag.takeSnapshot(BALL);
+                            if(VisionFlag.objectCount > 0){
+                                break;
+                            }
+                        }
+                        ConveyorBelt.stop(vex::brakeType::hold);
+                        ballCount--;
+                    }
+                    else if(firstYPos < offYPos){
+                        flywheelSpeed = getSpeed(distanceToFlag, 2.45);
+                        ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                        while(true){
+                            VisionFlag.takeSnapshot(BALL);
+                            if(VisionFlag.objectCount > 0){
+                                break;
+                            }
+                        }
+                        ConveyorBelt.stop(vex::brakeType::hold);
+                        ballCount--;
+                    }
+                }
+                else if(VisionFlag.objectCount == 1){
+                    int ind1;
+                    for(int i = 0; i < sizeof(VisionFlag.objects); i++){
+                        if((VisionFlag.objects[i].id) == 1){
+                            ind1 = i;
+                            break;
+                        }
+                    }
+                    double offYPos = VisionFlag.objects[ind1].centerY;
+                    if(firstYPos > offYPos){
+                        ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                        while(true){
+                            VisionFlag.takeSnapshot(BALL);
+                            if(VisionFlag.objectCount > 0){
+                                break;
+                            }
+                        }
+                        ConveyorBelt.stop(vex::brakeType::hold);
+                        ballCount--;
+                    }
+                    else if(firstYPos < offYPos){
+                        flywheelSpeed = getSpeed(distanceToFlag, 2.45);
+                        ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                        while(true){
+                            VisionFlag.takeSnapshot(BALL);
+                            if(VisionFlag.objectCount > 0){
+                                break;
+                            }
+                        }
+                        ConveyorBelt.stop(vex::brakeType::hold);
+                        ballCount--;
+                    }
+                }
+            }
+        }
+        else{
+            VisionFlag.takeSnapshot(REDFLAG);
+            if(VisionFlag.objectCount == 2){
+                ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                while(true){
+                    VisionFlag.takeSnapshot(BALL);
+                    if(VisionFlag.objectCount > 0){
+                        break;
+                    }
+                }
+                
+                if(ballCount == 1){
+                    flywheelSpeed = getSpeed(distanceToFlag, 2.45);
+                    ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                    while(true){
+                        VisionFlag.takeSnapshot(BALL);
+                        if(VisionFlag.objectCount > 0){
+                            break;
+                        }
+                    }
+                }
+            }
+            else if(VisionFlag.objectCount == 1){
+                double firstYPos = VisionFlag.largestObject.centerY;
+                VisionFlag.takeSnapshot(BLUEFLAG);
+                if(VisionFlag.objectCount == 2){
+                    double offYPos;
+                    bool haveOne = false;
+                    int ind1;
+                    int ind2;
+                    for(int i = 0; i < sizeof(VisionFlag.objects); i++){
+                        if((VisionFlag.objects[i].id) == 2 && haveOne == false){
+                            ind1 = i;
+                            haveOne = true;
+                        }
+                        else if((VisionFlag.objects[i].id) == 2 && haveOne == true){
+                            ind2 = i;
+                            break;
+                        }
+                    }
+
+                    double firstDiff = fabs(firstYPos - VisionFlag.objects[ind1].centerY);
+                    double secondDiff = fabs(firstYPos - VisionFlag.objects[ind2].centerY);
+                    if(firstDiff > secondDiff){
+                        offYPos = VisionFlag.objects[ind1].centerY;
+                    }
+                    else{
+                        offYPos = VisionFlag.objects[ind2].centerY;
+                    }
+                    
+                    if(firstYPos > offYPos){
+                        ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                        while(true){
+                            VisionFlag.takeSnapshot(BALL);
+                            if(VisionFlag.objectCount > 0){
+                                break;
+                            }
+                        }
+                    }
+                    else if(firstYPos < offYPos){
+                        flywheelSpeed = getSpeed(distanceToFlag, 2.45);
+                        ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                        while(true){
+                            VisionFlag.takeSnapshot(BALL);
+                            if(VisionFlag.objectCount > 0){
+                                break;
+                            }
+                        }
+                    }
+                }
+                else if(VisionFlag.objectCount == 1){
+                    int ind1;
+                    for(int i = 0; i < sizeof(VisionFlag.objects); i++){
+                        if((VisionFlag.objects[i].id) == 2){
+                            ind1 = i;
+                            break;
+                        }
+                    }
+                    double offYPos = VisionFlag.objects[ind1].centerY;
+                    if(firstYPos > offYPos){
+                        ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                        while(true){
+                            VisionFlag.takeSnapshot(BALL);
+                            if(VisionFlag.objectCount > 0){
+                                break;
+                            }
+                        }
+                    }
+                    else if(firstYPos < offYPos){
+                        flywheelSpeed = getSpeed(distanceToFlag, 2.45);
+                        ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                        while(true){
+                            VisionFlag.takeSnapshot(BALL);
+                            if(VisionFlag.objectCount > 0){
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    else if(mode == 2){
+        if(alliance == 0){
+            VisionFlag.takeSnapshot(BLUEFLAG);
+            double centerXPosFlag = VisionFlag.largestObject.centerX;
+            double angle = atan((1-(centerXPosFlag/160))*(tan(FOVXRad/2.0)));
+            angle = (180.0*angle)/(M_PI);
+            double gyroVal = Gyroscope.value(vex::analogUnits::range12bit);
+            //gyroTurn(gyroVal - angle);
+            
+            if(VisionFlag.objectCount == 2){
+                double dist = getDistance(VisionFlag.largestObject.centerY, 43.3);
+                flywheelSpeed = getSpeed(dist, (433.0/120.0));
+                ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                while(true){
+                    VisionFlag.takeSnapshot(BALL);
+                    if(VisionFlag.objectCount > 0){
+                        break;
+                    }
+                }
+                if(ballCount == 1){
+                    flywheelSpeed = getSpeed(dist, 2.45);
+                    ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                    while(true){
+                        VisionFlag.takeSnapshot(BALL);
+                        if(VisionFlag.objectCount > 0){
+                            break;
+                        }
+                    }
+                }
+            }
+            else if(VisionFlag.objectCount == 1){
+                double firstYPos = VisionFlag.largestObject.centerY;
+                VisionFlag.takeSnapshot(REDFLAG);
+                if(VisionFlag.objectCount == 2){
+                    double offYPos;
+                    bool haveOne = false;
+                    int ind1;
+                    int ind2;
+                    for(int i = 0; i < sizeof(VisionFlag.objects); i++){
+                        if((VisionFlag.objects[i].id) == 1 && haveOne == false){
+                            ind1 = i;
+                            haveOne = true;
+                        }
+                        else if((VisionFlag.objects[i].id) == 1 && haveOne == true){
+                            ind2 = i;
+                            break;
+                        }
+                    }
+
+                    double firstDiff = fabs(firstYPos - VisionFlag.objects[ind1].centerY);
+                    double secondDiff = fabs(firstYPos - VisionFlag.objects[ind2].centerY);
+                    if(firstDiff > secondDiff){
+                        offYPos = VisionFlag.objects[ind1].centerY;
+                    }
+                    else{
+                        offYPos = VisionFlag.objects[ind2].centerY;
+                    }
+                    
+                    if(firstYPos > offYPos){
+                        double dist = getDistance(VisionFlag.largestObject.centerY, 43.3);
+                        flywheelSpeed = getSpeed(dist, (433.0/120.0));
+                        ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                        while(true){
+                            VisionFlag.takeSnapshot(BALL);
+                            if(VisionFlag.objectCount > 0){
+                                break;
+                            }
+                        }
+                    }
+                    else if(firstYPos < offYPos){
+                        double dist = getDistance(VisionFlag.largestObject.centerY, 29.4);
+                        flywheelSpeed = getSpeed(dist, 2.45);
+                        ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                        while(true){
+                            VisionFlag.takeSnapshot(BALL);
+                            if(VisionFlag.objectCount > 0){
+                                break;
+                            }
+                        }
+                    }
+                }
+                else if(VisionFlag.objectCount == 1){
+                    int ind1;
+                    for(int i = 0; i < sizeof(VisionFlag.objects); i++){
+                        if((VisionFlag.objects[i].id) == 1){
+                            ind1 = i;
+                            break;
+                        }
+                    }
+                    double offYPos = VisionFlag.objects[ind1].centerY;
+                    if(firstYPos > offYPos){
+                        double dist = getDistance(VisionFlag.largestObject.centerY, 43.3);
+                        flywheelSpeed = getSpeed(dist, (433.0/120.0));
+                        ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                        while(true){
+                            VisionFlag.takeSnapshot(BALL);
+                            if(VisionFlag.objectCount > 0){
+                                break;
+                            }
+                        }
+                    }
+                    else if(firstYPos < offYPos){
+                        double dist = getDistance(VisionFlag.largestObject.centerY, 29.4);
+                        flywheelSpeed = getSpeed(dist, 2.45);
+                        ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                        while(true){
+                            VisionFlag.takeSnapshot(BALL);
+                            if(VisionFlag.objectCount > 0){
+                                break;
+                            }
+                        }
+                    }
+                }
+                else if(VisionFlag.objectCount == 0){
+                    double dist = getDistance(VisionFlag.largestObject.centerY, 29.4);
+                    flywheelSpeed = getSpeed(dist, 2.45);
+                    ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                    while(true){
+                        VisionFlag.takeSnapshot(BALL);
+                        if(VisionFlag.objectCount > 0){
+                            break;
+                        }
+                    }
+                }
+            }
+        }
+        else{
+            VisionFlag.takeSnapshot(REDFLAG);
+            double centerXPosFlag = VisionFlag.largestObject.centerX;
+            double angle = atan((1-(centerXPosFlag/160))*(tan(FOVXRad/2.0)));
+            angle = (180.0*angle)/(M_PI);
+            double gyroVal = Gyroscope.value(vex::analogUnits::range12bit);
+            //gyroTurn(gyroVal - angle);
+            
+            if(VisionFlag.objectCount == 2){
+                double dist = getDistance(VisionFlag.largestObject.centerY, 43.3);
+                flywheelSpeed = getSpeed(dist, (433.0/120.0));
+                ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                while(true){
+                    VisionFlag.takeSnapshot(BALL);
+                    if(VisionFlag.objectCount > 0){
+                        break;
+                    }
+                }
+                if(ballCount == 1){
+                    flywheelSpeed = getSpeed(dist, 2.45);
+                    ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                    while(true){
+                        VisionFlag.takeSnapshot(BALL);
+                        if(VisionFlag.objectCount > 0){
+                            break;
+                        }
+                    }
+                }
+            }
+            else if(VisionFlag.objectCount == 1){
+                double firstYPos = VisionFlag.largestObject.centerY;
+                VisionFlag.takeSnapshot(BLUEFLAG);
+                if(VisionFlag.objectCount == 2){
+                    double offYPos;
+                    bool haveOne = false;
+                    int ind1;
+                    int ind2;
+                    for(int i = 0; i < sizeof(VisionFlag.objects); i++){
+                        if((VisionFlag.objects[i].id) == 2 && haveOne == false){
+                            ind1 = i;
+                            haveOne = true;
+                        }
+                        else if((VisionFlag.objects[i].id) == 2 && haveOne == true){
+                            ind2 = i;
+                            break;
+                        }
+                    }
+
+                    double firstDiff = fabs(firstYPos - VisionFlag.objects[ind1].centerY);
+                    double secondDiff = fabs(firstYPos - VisionFlag.objects[ind2].centerY);
+                    if(firstDiff > secondDiff){
+                        offYPos = VisionFlag.objects[ind1].centerY;
+                    }
+                    else{
+                        offYPos = VisionFlag.objects[ind2].centerY;
+                    }
+                    
+                    if(firstYPos > offYPos){
+                        double dist = getDistance(VisionFlag.largestObject.centerY, 43.3);
+                        flywheelSpeed = getSpeed(dist, (433.0/120.0));
+                        ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                        while(true){
+                            VisionFlag.takeSnapshot(BALL);
+                            if(VisionFlag.objectCount > 0){
+                                break;
+                            }
+                        }
+                    }
+                    else if(firstYPos < offYPos){
+                        double dist = getDistance(VisionFlag.largestObject.centerY, 29.4);
+                        flywheelSpeed = getSpeed(dist, 2.45);
+                        ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                        while(true){
+                            VisionFlag.takeSnapshot(BALL);
+                            if(VisionFlag.objectCount > 0){
+                                break;
+                            }
+                        }
+                    }
+                }
+                else if(VisionFlag.objectCount == 1){
+                    int ind1;
+                    for(int i = 0; i < sizeof(VisionFlag.objects); i++){
+                        if((VisionFlag.objects[i].id) == 2){
+                            ind1 = i;
+                            break;
+                        }
+                    }
+                    double offYPos = VisionFlag.objects[ind1].centerY;
+                    if(firstYPos > offYPos){
+                        double dist = getDistance(VisionFlag.largestObject.centerY, 43.3);
+                        flywheelSpeed = getSpeed(dist, (433.0/120.0));
+                        ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                        while(true){
+                            VisionFlag.takeSnapshot(BALL);
+                            if(VisionFlag.objectCount > 0){
+                                break;
+                            }
+                        }
+                    }
+                    else if(firstYPos < offYPos){
+                        double dist = getDistance(VisionFlag.largestObject.centerY, 29.4);
+                        flywheelSpeed = getSpeed(dist, 2.45);
+                        ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                        while(true){
+                            VisionFlag.takeSnapshot(BALL);
+                            if(VisionFlag.objectCount > 0){
+                                break;
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+    notFiring = true;
+}
+
+/*---------------------------------------------------------------------------*/
+/*                                                                           */
+/*                              Autonomous Task                              */
+/*                                                                           */
+/*  This task is used to control your robot during the autonomous phase of   */
+/*  a VEX Competition.                                                       */
+/*                                                                           */
+/*  You must modify the code to add your own robot specific commands here.   */
+/*---------------------------------------------------------------------------*/
+
+void autonomous( void ) {
+  // ..........................................................................
+  // Insert autonomous user code here.
+  // ..........................................................................
+
+}
+
+/*---------------------------------------------------------------------------*/
+/*                                                                           */
+/*                              User Control Task                            */
+/*                                                                           */
+/*  This task is used to control your robot during the user control phase of */
+/*  a VEX Competition.                                                       */
+/*                                                                           */
+/*  You must modify the code to add your own robot specific commands here.   */
+/*---------------------------------------------------------------------------*/
+void changeFlag1(){
+    flag = 1;
+    if(alliance == 0){
+        xPosFlag = 28.45;
+        yPosFlag = 129.91;
+    }
+    else{
+        xPosFlag = 18.55;
+        yPosFlag = 129.91;
+    }
+}
+void changeFlag2(){
+    flag = 2;
+    if(alliance == 0){
+        xPosFlag = 75.2;
+        yPosFlag = 129.91;
+    }
+    else{
+        xPosFlag = 65.3;
+        yPosFlag = 129.91;
+    }
+}
+void changeFlag3(){
+    flag = 3;
+    if(alliance == 0){
+        xPosFlag = 122.45;
+        yPosFlag = 129.91;
+    }
+    else{
+        xPosFlag = 112.55;
+        yPosFlag = 129.91;
+    }
+}
+
+
+
+void changeModePosition(){
+    if(mode != 4){
+        mode = 1;
+    }
+    else{
+        oldMode = 1;
+    }
+}
+void changeModeVision(){
+    if(mode != 4){
+        mode = 2;
+    }
+    else{
+        oldMode = 2;
+    }
+}
+void changeModeFreestyle(){
+    if(mode != 4)
+    {
+        mode = 3;
+    }
+    else{
+        oldMode = 3;
+    }
+}
+
+
+
+void tallPole(){
+    
+}
+void shortPole(){
+    
+}
+
+
+
+void toggleFlywheel(){
+    if(mode != 4){
+        oldMode = mode;
+        mode = 4;
+    }
+    else{
+        mode = oldMode;
+    }
+}
+
+void usercontrol( void ) {
+    vex::task positionTracking(position3);
+    vex::task flywheelController(PFly);
+    
+    SecondUser.ButtonLeft.pressed(changeFlag1);
+    SecondUser.ButtonUp.pressed(changeFlag2);
+    SecondUser.ButtonRight.pressed(changeFlag3);
+    
+    SecondUser.ButtonY.pressed(changeModePosition);
+    SecondUser.ButtonX.pressed(changeModeVision);
+    SecondUser.ButtonA.pressed(changeModeFreestyle);
+    
+    MainUser.ButtonUp.pressed(tallPole);
+    MainUser.ButtonDown.pressed(shortPole);
+    
+    MainUser.ButtonY.pressed(toggleFlywheel);
+    
+    MainUser.ButtonA.pressed(shoot);
+    while (true) {
+        int leftSpeedMainUser = int(MainUser.Axis3.position(vex::percentUnits::pct)) + ((MainUser.Axis1.position(vex::percentUnits::pct)) + (MainUser.Axis2.position(vex::percentUnits::pct)));
+        int rightSpeedMainUser = int(MainUser.Axis3.position(vex::percentUnits::pct)) - ((MainUser.Axis1.position(vex::percentUnits::pct)) + (MainUser.Axis2.position(vex::percentUnits::pct)));
+      
+        if(leftSpeedMainUser > 10 || leftSpeedMainUser < -10){
+            LeftChassis.spin(vex::directionType::fwd,leftSpeedMainUser,vex::velocityUnits::pct);
+        }
+        else{
+            LeftChassis.spin(vex::directionType::fwd,0,vex::velocityUnits::pct);
+        }
+        
+        if(rightSpeedMainUser > 10 or rightSpeedMainUser < -10){
+            RightChassis.spin(vex::directionType::fwd,rightSpeedMainUser,vex::velocityUnits::pct);
+        }
+        else{
+            RightChassis.spin(vex::directionType::fwd,0,vex::velocityUnits::pct);
+        }
+       
+        //Lift Control
+        if(MainUser.ButtonL1.pressing()){
+            LeftLift.spin(vex::directionType::fwd,200,vex::velocityUnits::rpm);
+            RightLift.spin(vex::directionType::fwd,200,vex::velocityUnits::rpm);
+        }
+        else if(MainUser.ButtonL2.pressing()){
+            LeftLift.spin(vex::directionType::rev,140,vex::velocityUnits::rpm);
+            RightLift.spin(vex::directionType::rev,140,vex::velocityUnits::rpm);
+        }
+        else{
+            LeftLift.stop(vex::brakeType::hold);
+            RightLift.stop(vex::brakeType::hold);
+        }
+        
+        //Claw Control
+        if(MainUser.ButtonR1.pressing()){
+            Claw.spin(vex::directionType::fwd,140,vex::velocityUnits::rpm);
+        }
+        else if(MainUser.ButtonR2.pressing()){
+            Claw.spin(vex::directionType::rev,140,vex::velocityUnits::rpm);
+        }
+        else{
+            Claw.stop(vex::brakeType::brake);
+        }
+        
+        //Conveyor Control
+        /*if(MainUser.ButtonA.pressing() && mode == 3){
+            ConveyorBelt.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+        }
+        else */if(MainUser.ButtonX.pressing()){
+            ConveyorBelt.spin(vex::directionType::fwd, 40, vex::velocityUnits::pct);
+        }
+        else if(MainUser.ButtonB.pressing()){
+            ConveyorBelt.spin(vex::directionType::rev, 100, vex::velocityUnits::pct);
+        }
+        else{
+            ConveyorBelt.stop(vex::brakeType::hold);
+        }
+        
+        //Flywheel Control
+        if(mode == 1 && notFiring){
+            flywheelController.resume();
+            distanceToFlag = sqrt(((xPosFlag - currentPositionX)*(xPosFlag - currentPositionX)) + ((yPosFlag - currentPositionY)*(yPosFlag  - currentPositionY)));
+            double speed = getSpeed(distanceToFlag, (433/120));
+            flywheelSpeed = speed;
+        }
+        else if(mode == 2 && notFiring){
+            flywheelController.resume();
+            flywheelSpeed = 170.0;
+        }
+        else if(mode == 3 && notFiring){
+            flywheelController.resume();
+            flywheelSpeed = 200.0;
+        }
+        else if(mode == 4 && notFiring){
+            flywheelController.suspend();
+            FlywheelTop.stop(vex::brakeType::coast);
+            FlywheelBot.stop(vex::brakeType::coast);
+        }
+        
+        vex::task::sleep(20); //Sleep the task for a short amount of time to prevent wasted resources.
+    }
+}
+
+//
+// Main will set up the competition functions and callbacks.
+//
+int main() {
+    
+    //Run the pre-autonomous function. 
+    pre_auton();
+    
+    //Set up callbacks for autonomous and driver control periods.
+    Competition.autonomous( autonomous );
+    Competition.drivercontrol( usercontrol );
+
+    //Prevent main from exiting with an infinite loop.                        
+    while(true) {
+      vex::task::sleep(100);//Sleep the task for a short amount of time to prevent wasted resources.
+    }    
+       
+}
