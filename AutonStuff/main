@@ -1,0 +1,255 @@
+#include "robot-config.h"
+#include <math.h>
+
+double xPosition = 0.0;
+double yPosition = 0.0;
+double currentAngle = 0.0;
+double restingX = 0.0;
+double restingY = 0.0;
+double restingZ = 0.0;
+
+double straightConversion = 0.0;
+double thetaConversion = 0.0;
+
+double ticksToInches(double ticks){
+    double inches = (ticks * (M_PI))/(90.0);
+    return inches;
+}
+
+double inchesToTicks(double inches){
+    double ticks = (inches * 90.0)/(M_PI);
+    return ticks;
+}
+
+double ticksToDegrees(double ticks){
+    double deg = (ticks * 90.0)/(285.0);
+    return deg;
+}
+
+double degreesToTicks(double deg){
+    double ticks = (deg * 285.0)/(90.0);
+    return ticks;
+}
+
+void prep(){
+    vex::task::sleep(5000);
+    restingX = AccelX.value(vex::analogUnits::range12bit);
+    restingY = AccelY.value(vex::analogUnits::range12bit);
+    restingZ = AccelZ.value(vex::analogUnits::range12bit);
+}
+
+int position(){
+    double oldRight = 0.0;
+    double oldLeft = 0.0;
+    double rightE = RightChassis.rotation(vex::rotationUnits::deg);
+    double leftE = LeftChassis.rotation(vex::rotationUnits::deg);
+    
+    double ANALOG_PER_G = 386.09/(830.0/3.0);
+    double distX = 0.0;
+    double prevAccX = 0.0;
+    double prevVelX = 0.0;
+    while(true){
+        rightE = RightChassis.rotation(vex::rotationUnits::deg);
+        leftE = LeftChassis.rotation(vex::rotationUnits::deg);
+        
+        double accX = (AccelX.value(vex::analogUnits::range12bit) - restingX);
+        double accY = (AccelY.value(vex::analogUnits::range12bit) - restingY);
+        double accZ = (AccelZ.value(vex::analogUnits::range12bit) - restingZ);
+        
+        if(fabs(accX) < 4.0){
+            accX = 0.0;
+        }
+        if(fabs(accY) < 4.0){
+            accY = 0.0;
+        }
+        if(fabs(accZ) < 4.0){
+            accZ = 0.0;
+        }
+        
+        /*NOTE: adjust for position of aceelerometer*/
+        accX *= (-1.0 * ANALOG_PER_G);
+        accY *= ANALOG_PER_G;
+        accZ *= ANALOG_PER_G;
+        
+        double rightDelta = rightE - oldRight;
+        double leftDelta = leftE - oldLeft;
+        
+        if(accZ != 0.0){
+            rightDelta = 0.0;
+            leftDelta = 0.0;
+        }
+        else if(accY == 0.0 && RightChassis.velocity(vex::velocityUnits::pct) > 0.0 && LeftChassis.velocity(vex::velocityUnits::pct) > 0.0){
+            rightDelta = 0.0;
+            leftDelta = 0.0;
+        }
+        else if(accY == 0.0 && RightChassis.velocity(vex::velocityUnits::pct) < 0.0 && LeftChassis.velocity(vex::velocityUnits::pct) < 0.0){
+            rightDelta = 0.0;
+            leftDelta = 0.0;
+        }
+        else if(RightChassis.velocity(vex::velocityUnits::pct) == 0.0 || LeftChassis.velocity(vex::velocityUnits::pct) == 0.0){
+            if(RightChassis.velocity(vex::velocityUnits::pct) == 0.0){
+                rightDelta = 0.0;
+            }
+            if(LeftChassis.velocity(vex::velocityUnits::pct) == 0.0){
+                leftDelta = 0.0;
+            }
+        }
+        double avg = (rightDelta + leftDelta)/2.0;
+        double diff = -1.0 * ((rightDelta - leftDelta)/ 2.0);
+        Brain.Screen.printAt(1,75,true,"diff: %f", diff);
+        double dist = ticksToInches(avg);
+        double dtheta = ticksToDegrees(diff);
+        
+        currentAngle += dtheta;
+        if(currentAngle > 360.0){
+            currentAngle -= 360.0;
+        }
+        else if(currentAngle < 0.0){
+            currentAngle += 360.0;
+        }
+        double angleRad = (currentAngle * M_PI)/180.0;
+        double angleRadX = ((currentAngle + 90.0) * M_PI)/180.0;
+        double changeX = sin(angleRad) * dist;
+        double changeY = cos(angleRad) * dist;
+        xPosition += changeX;
+        yPosition += changeY;
+        
+        double velX = ((accX + prevAccX)/2.0)*0.02;
+        double curDistX = ((velX + prevVelX)/2.0)*0.02;
+        distX += curDistX;
+        if(curDistX == 0.0){
+            distX = 0.0;
+        }
+        
+        double changeYaccX = sin(angleRadX) * distX;
+        double changeXaccX = cos(angleRadX) * distX;
+        
+        yPosition += changeYaccX;
+        xPosition += changeXaccX;
+        
+        prevAccX = accX;
+        prevVelX = velX;
+        oldRight = rightE;
+        oldLeft = leftE;
+        
+        vex::task::sleep(20);
+    }
+    return 0;
+}
+
+void move(double inch, double speed = 170.0){
+    double goalR = RightChassis.rotation(vex::rotationUnits::deg) + inchesToTicks(inch);
+    double goalL = LeftChassis.rotation(vex::rotationUnits::deg) + inchesToTicks(inch);
+    double startR = RightChassis.rotation(vex::rotationUnits::deg);
+    double startL = LeftChassis.rotation(vex::rotationUnits::deg);
+    RightChassis.startRotateTo(goalR,vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    LeftChassis.startRotateTo(goalL, vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    while(RightChassis.rotation(vex::rotationUnits::deg) != goalR){
+        double currentR = RightChassis.rotation(vex::rotationUnits::deg) - startR;
+        double currentL = LeftChassis.rotation(vex::rotationUnits::deg) - startL;
+        double error = currentL - currentR;
+        double velL = LeftChassis.velocity(vex::velocityUnits::rpm);
+        LeftChassis.setVelocity(velL-error, vex::velocityUnits::rpm);
+    }
+}
+
+void turn(double deg, double speed = 170.0){
+    double goalR = RightChassis.rotation(vex::rotationUnits::deg) - degreesToTicks(deg);
+    double goalL = LeftChassis.rotation(vex::rotationUnits::deg) + degreesToTicks(deg);
+    RightChassis.startRotateTo(goalR,vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    LeftChassis.startRotateTo(goalL, vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+     while(RightChassis.rotation(vex::rotationUnits::deg) != goalR){
+        double currentR = fabs(RightChassis.rotation(vex::rotationUnits::deg) - startR);
+        double currentL = fabs(LeftChassis.rotation(vex::rotationUnits::deg) - startL);
+        double error = currentL - currentR;
+        double velL = LeftChassis.velocity(vex::velocityUnits::rpm);
+        LeftChassis.setVelocity(velL-error, vex::velocityUnits::rpm);
+    }
+}
+
+void moveTo(double xPos, double yPos, double speed = 170.0, int dir = 1){
+    double diffX = (xPos - xPosition);
+    double diffY = (yPos - yPosition);
+    
+    double reqAngle;
+    if(diffY < 0.0){
+        reqAngle = atan(diffY/diffX);
+        reqAngle = (reqAngle * 180.0)/M_PI;
+        if(diffX > 0.0){
+            reqAngle = 90.0 - reqAngle;
+        }
+        else{
+            reqAngle = 180.0 - reqAngle;
+        }
+    }
+    else{
+        reqAngle = atan(diffX/diffY);
+        reqAngle = (reqAngle * 180.0)/M_PI;
+    }
+    
+    if(reqAngle < 0.0){
+        reqAngle += 360.0;
+    }
+    
+    if(dir == -1){
+        if(reqAngle < 180.0){
+            reqAngle = reqAngle + 180.0;
+        }
+        else{
+            reqAngle = reqAngle - 180.0;
+        }
+    }
+    
+    turn(reqAngle, speed);
+    
+    double dist = (double)dir * sqrt((diffX * diffX) + (diffY * diffY));
+    move(dist, speed);
+}
+
+int main() {
+    RightChassis.resetRotation();
+    LeftChassis.resetRotation();
+    
+    
+    move(-45.0);
+    ConveyorBelt.spin(vex::directionType::fwd,100,vex::velocityUnits::pct);
+    vex::task::sleep(500);
+    ConveyorBelt.stop(vex::brakeType::hold);
+    move(40.0);
+    turn(-90.5);
+    
+    /*
+    //prep();
+    //288 for 90 degrees
+    LeftChassis.startRotateTo(280, vex::rotationUnits::deg, 170, vex::velocityUnits::rpm);
+    RightChassis.rotateTo(-280, vex::rotationUnits::deg, 170, vex::velocityUnits::rpm);
+    //vex::task positionTracking(position);
+    while (true) {
+        Brain.Screen.printAt(1,45,true,"(%f, %f)", xPosition, yPosition);
+        Brain.Screen.printAt(1,60,true,"Angle: %f", currentAngle);
+        double right = RightChassis.rotation(vex::rotationUnits::deg);
+        double left = LeftChassis.rotation(vex::rotationUnits::deg);
+        //Brain.Screen.printAt(1, 45, true, "Right: %f", right);
+        //Brain.Screen.printAt(1, 60, true, "Left: %f", left);
+        
+        //Chassis Control
+        int leftSpeedMainUser = int(MainUser.Axis3.position(vex::percentUnits::pct)) + ((MainUser.Axis1.position(vex::percentUnits::pct)) + (MainUser.Axis2.position(vex::percentUnits::pct)));
+        int rightSpeedMainUser = int(MainUser.Axis3.position(vex::percentUnits::pct)) - ((MainUser.Axis1.position(vex::percentUnits::pct)) + (MainUser.Axis2.position(vex::percentUnits::pct)));
+      
+        if(leftSpeedMainUser > 10 || leftSpeedMainUser < -10){
+            LeftChassis.spin(vex::directionType::fwd,leftSpeedMainUser,vex::velocityUnits::pct);
+        }
+        else{
+            LeftChassis.spin(vex::directionType::fwd,0,vex::velocityUnits::pct);
+        }
+        
+        if(rightSpeedMainUser > 10 or rightSpeedMainUser < -10){
+            RightChassis.spin(vex::directionType::fwd,rightSpeedMainUser,vex::velocityUnits::pct);
+        }
+        else{
+            RightChassis.spin(vex::directionType::fwd,0,vex::velocityUnits::pct);
+        }
+        
+    }
+    */
+}
