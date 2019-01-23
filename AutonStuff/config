@@ -1,0 +1,17 @@
+vex::brain Brain;
+vex::controller MainUser = vex::controller();
+vex::controller SecondUser = vex::controller(vex::controllerType::partner);
+
+vex::motor Descore = vex::motor(vex::PORT8,vex::gearSetting::ratio18_1,false);
+
+vex::encoder Encoder = vex::encoder(Brain.ThreeWirePort.A);vex::motor RightChassis = vex::motor(vex::PORT14,vex::gearSetting::ratio18_1,true);
+vex::motor LeftChassis = vex::motor(vex::PORT13,vex::gearSetting::ratio18_1,false);
+
+vex::motor ConveyorBelt = vex::motor(vex::PORT3,vex::gearSetting::ratio18_1,true);
+
+vex::motor FlywheelTop = vex::motor(vex::PORT2,vex::gearSetting::ratio18_1,false);
+vex::motor FlywheelBot = vex::motor(vex::PORT1,vex::gearSetting::ratio18_1,false);
+
+vex::accelerometer AccelX = vex::accelerometer(Brain.ThreeWirePort.H);
+vex::accelerometer AccelY = vex::accelerometer(Brain.ThreeWirePort.G);
+vex::accelerometer AccelZ = vex::accelerometer(Brain.ThreeWirePort.F);
