@@ -206,6 +206,7 @@ void usercontrol( void ) {
     MainUser.ButtonRight.pressed(changeDir);
     MainUser.ButtonUp.pressed(changeSpeedHigh);
     MainUser.ButtonDown.pressed(changeSpeedLow);
+    MainUser.ButtonY.pressed(toggleFly);
     while(true){
         //Chassis Control
         int leftSpeedMainUser = direction*int(MainUser.Axis3.position(vex::percentUnits::pct)) + ((MainUser.Axis1.position(vex::percentUnits::pct)) + (MainUser.Axis2.position(vex::percentUnits::pct)));
