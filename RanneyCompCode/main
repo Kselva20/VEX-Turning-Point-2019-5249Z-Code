@@ -31,6 +31,25 @@ void pre_auton( void ) {
 /*                                                                           */
 /*  You must modify the code to add your own robot specific commands here.   */
 /*---------------------------------------------------------------------------*/
+double ticksToInches(double ticks){
+    double inches = (ticks * (M_PI))/(90.0);
+    return inches;
+}
+
+double inchesToTicks(double inches){
+    double ticks = (inches * 90.0)/(M_PI);
+    return ticks;
+}
+
+double ticksToDegrees(double ticks){
+    double deg = (ticks * 90.0)/(285.0);
+    return deg;
+}
+
+double degreesToTicks(double deg){
+    double ticks = (deg * 285.0)/(90.0);
+    return ticks;
+}
 void move(double inch, double speed = 170.0){
     double goalRF = RightFChassis.rotation(vex::rotationUnits::deg) + inchesToTicks(inch);
     double goalLF = LeftFChassis.rotation(vex::rotationUnits::deg) + inchesToTicks(inch);
@@ -154,7 +173,7 @@ void changeSpeedHigh(){
         flySpeed = 191.0;
     }
     else{
-        oldSpeed = 191.0
+        oldSpeed = 191.0;
     }
 }
 
@@ -163,7 +182,7 @@ void changeSpeedLow(){
         flySpeed = 178.0;
     }
     else{
-        oldSpeed = 178.0
+        oldSpeed = 178.0;
     }
 }
 
