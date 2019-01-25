@@ -1,0 +1,273 @@
+#include "robot-config.h"
+/*---------------------------------------------------------------------------*/
+/*                                                                           */
+/*        Description: Competition template for VCS VEX V5                    */
+/*                                                                           */
+/*---------------------------------------------------------------------------*/
+
+//Creates a competition object that allows access to Competition methods.
+vex::competition    Competition;
+int auton = 0;
+/*---------------------------------------------------------------------------*/
+/*                          Pre-Autonomous Functions                         */
+/*                                                                           */
+/*  You may want to perform some actions before the competition starts.      */
+/*  Do them in the following function.  You must return from this function   */
+/*  or the autonomous and usercontrol tasks will not be started.  This       */
+/*  function is only called once after the cortex has been powered on and    */ 
+/*  not every time that the robot is disabled.                               */
+/*---------------------------------------------------------------------------*/
+
+void pre_auton( void ) {
+    //PUT STEVEN'S CODE HERE
+}
+
+/*---------------------------------------------------------------------------*/
+/*                                                                           */
+/*                              Autonomous Task                              */
+/*                                                                           */
+/*  This task is used to control your robot during the autonomous phase of   */
+/*  a VEX Competition.                                                       */
+/*                                                                           */
+/*  You must modify the code to add your own robot specific commands here.   */
+/*---------------------------------------------------------------------------*/
+void move(double inch, double speed = 170.0){
+    double goalRF = RightFChassis.rotation(vex::rotationUnits::deg) + inchesToTicks(inch);
+    double goalLF = LeftFChassis.rotation(vex::rotationUnits::deg) + inchesToTicks(inch);
+    double goalRB = RightBChassis.rotation(vex::rotationUnits::deg) + inchesToTicks(inch);
+    double goalLB = LeftBChassis.rotation(vex::rotationUnits::deg) + inchesToTicks(inch);
+    RightFChassis.startRotateTo(goalRF,vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    LeftFChassis.startRotateTo(goalLF, vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    RightBChassis.startRotateTo(goalRB,vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    LeftBChassis.rotateTo(goalLB, vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+}
+
+void turn(double deg, double speed = 170.0){
+    double goalRF = RightFChassis.rotation(vex::rotationUnits::deg) - degreesToTicks(deg);
+    double goalLF = LeftFChassis.rotation(vex::rotationUnits::deg) + degreesToTicks(deg);
+    double goalRB = RightBChassis.rotation(vex::rotationUnits::deg) - degreesToTicks(deg);
+    double goalLB = LeftBChassis.rotation(vex::rotationUnits::deg) + degreesToTicks(deg);
+    RightFChassis.startRotateTo(goalRF,vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    LeftFChassis.startRotateTo(goalLF, vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    RightBChassis.startRotateTo(goalRB,vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    LeftBChassis.rotateTo(goalLB, vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+}
+
+void blueClose(){
+    RightFChassis.resetRotation();
+    LeftFChassis.resetRotation();
+    RightBChassis.resetRotation();
+    LeftBChassis.resetRotation();
+    FlywheelTop.spin(vex::directionType::fwd, 181, vex::velocityUnits::rpm);
+    FlywheelBot.spin(vex::directionType::fwd,181, vex::velocityUnits::rpm);
+    move(-45.0,150);
+    ConveyorBelt.spin(vex::directionType::fwd,100,vex::velocityUnits::pct);
+    vex::task::sleep(500);
+    ConveyorBelt.stop(vex::brakeType::hold);
+    move(40.0,150);
+    turn(-101.0);
+    ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+    vex::task::sleep(600);
+    ConveyorBelt.stop(vex::brakeType::hold);
+    move(26.5,150);
+    ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+    vex::task::sleep(700);
+    ConveyorBelt.stop(vex::brakeType::hold);
+    turn(90.0);
+    ConveyorBelt.spin(vex::directionType::rev, 80,vex::velocityUnits::pct);
+    move(-25.0, 110);
+    vex::task::sleep(500);
+    move(27.0, 150);
+    turn(-68.0);
+    move(15.0);
+}
+
+void blueFar(){
+    
+}
+
+void redClose(){
+    RightFChassis.resetRotation();
+    LeftFChassis.resetRotation();
+    RightBChassis.resetRotation();
+    LeftBChassis.resetRotation();
+    FlywheelTop.spin(vex::directionType::fwd, 181, vex::velocityUnits::rpm);
+    FlywheelBot.spin(vex::directionType::fwd,181, vex::velocityUnits::rpm);
+    move(-45.0,150);
+    ConveyorBelt.spin(vex::directionType::fwd,100,vex::velocityUnits::pct);
+    vex::task::sleep(500);
+    ConveyorBelt.stop(vex::brakeType::hold);
+    move(40.0,150);
+    turn(101.0);
+    ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+    vex::task::sleep(600);
+    ConveyorBelt.stop(vex::brakeType::hold);
+    move(26.5,150);
+    ConveyorBelt.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+    vex::task::sleep(700);
+    ConveyorBelt.stop(vex::brakeType::hold);
+    turn(-90.0);
+    ConveyorBelt.spin(vex::directionType::rev, 80,vex::velocityUnits::pct);
+    move(-25.0, 110);
+    vex::task::sleep(500);
+    move(27.0, 150);
+    turn(68.0);
+    move(15.0);
+}
+
+void redFar(){
+    
+}
+
+void autonomous( void ) {
+    switch(auton){
+        case 1:
+            blueClose();
+            break;
+        case 2:
+            blueFar();
+            break;
+        case 3:
+            redClose();
+            break;
+        case 4:
+            redFar();
+            break;
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+/*                                                                           */
+/*                              User Control Task                            */
+/*                                                                           */
+/*  This task is used to control your robot during the user control phase of */
+/*  a VEX Competition.                                                       */
+/*                                                                           */
+/*  You must modify the code to add your own robot specific commands here.   */
+/*---------------------------------------------------------------------------*/
+double flySpeed = 191.0;
+int direction = 1;
+bool flywheelIsOn = true;
+double oldSpeed = 191.0;
+void changeSpeedHigh(){
+    if(flywheelIsOn){
+        flySpeed = 191.0;
+    }
+    else{
+        oldSpeed = 191.0
+    }
+}
+
+void changeSpeedLow(){
+    if(flywheelIsOn){
+        flySpeed = 178.0;
+    }
+    else{
+        oldSpeed = 178.0
+    }
+}
+
+void toggleFly(){
+    flywheelIsOn = !flywheelIsOn;
+    if(!flywheelIsOn){
+        oldSpeed = flySpeed;
+        flySpeed = 0.0;
+    }
+    else{
+        flySpeed = oldSpeed;
+    }
+}
+
+void changeDir(){
+    direction *= -1;
+}
+
+
+void usercontrol( void ) {
+    MainUser.ButtonRight.pressed(changeDir);
+    MainUser.ButtonUp.pressed(changeSpeedHigh);
+    MainUser.ButtonDown.pressed(changeSpeedLow);
+    while(true){
+        //Chassis Control
+        int leftSpeedMainUser = direction*int(MainUser.Axis3.position(vex::percentUnits::pct)) + ((MainUser.Axis1.position(vex::percentUnits::pct)) + (MainUser.Axis2.position(vex::percentUnits::pct)));
+        int rightSpeedMainUser = direction*int(MainUser.Axis3.position(vex::percentUnits::pct)) - ((MainUser.Axis1.position(vex::percentUnits::pct)) + (MainUser.Axis2.position(vex::percentUnits::pct)));
+      
+        if(leftSpeedMainUser > 10 || leftSpeedMainUser < -10){
+            LeftFChassis.spin(vex::directionType::fwd,leftSpeedMainUser,vex::velocityUnits::pct);
+            LeftBChassis.spin(vex::directionType::fwd,leftSpeedMainUser,vex::velocityUnits::pct);
+        }
+        else{
+            LeftFChassis.spin(vex::directionType::fwd,0,vex::velocityUnits::pct);
+            LeftBChassis.spin(vex::directionType::fwd,0,vex::velocityUnits::pct);
+        }
+        
+        if(rightSpeedMainUser > 10 or rightSpeedMainUser < -10){
+            RightFChassis.spin(vex::directionType::fwd,rightSpeedMainUser,vex::velocityUnits::pct);
+            RightBChassis.spin(vex::directionType::fwd,rightSpeedMainUser,vex::velocityUnits::pct);
+        }
+        else{
+            RightFChassis.spin(vex::directionType::fwd,0,vex::velocityUnits::pct);
+            RightBChassis.spin(vex::directionType::fwd,0,vex::velocityUnits::pct);
+        }
+        
+        //Descore Control
+        if(MainUser.ButtonL1.pressing()){
+            Descore.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+        }
+        else if(MainUser.ButtonL2.pressing()){
+            Descore.spin(vex::directionType::rev, 80, vex::velocityUnits::pct);
+        }
+        else{
+            Descore.stop(vex::brakeType::hold);
+        }
+        
+        //Intake Control
+        if(MainUser.ButtonR1.pressing()){
+            ConveyorBelt.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+        }
+        else if(MainUser.ButtonR2.pressing()){
+            ConveyorBelt.spin(vex::directionType::rev, 70, vex::velocityUnits::pct);
+        }
+        else if(MainUser.ButtonX.pressing()){
+            ConveyorBelt.spin(vex::directionType::fwd, 40, vex::velocityUnits::pct);
+        }
+        else if(MainUser.ButtonA.pressing()){
+            ConveyorBelt.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+        }
+        else if(MainUser.ButtonB.pressing()){
+            ConveyorBelt.spin(vex::directionType::rev, 70, vex::velocityUnits::pct);
+        }
+        else{
+            ConveyorBelt.stop(vex::brakeType::hold);
+        }
+        
+        //Flywheel Control
+        if(flySpeed == 0.0){
+            FlywheelTop.stop(vex::brakeType::coast);
+            FlywheelBot.stop(vex::brakeType::coast);
+        }
+        else{
+            FlywheelTop.spin(vex::directionType::fwd, flySpeed, vex::velocityUnits::rpm);
+            FlywheelBot.spin(vex::directionType::fwd, flySpeed, vex::velocityUnits::rpm);
+        }
+    }
+}
+
+//
+// Main will set up the competition functions and callbacks.
+//
+int main() {
+    
+    //Run the pre-autonomous function. 
+    pre_auton();
+    
+    //Set up callbacks for autonomous and driver control periods.
+    Competition.autonomous( autonomous );
+    Competition.drivercontrol( usercontrol );
+
+    //Prevent main from exiting with an infinite loop.                        
+    while(1) {
+      vex::task::sleep(100);//Sleep the task for a short amount of time to prevent wasted resources.
+    }    
+       
+}
