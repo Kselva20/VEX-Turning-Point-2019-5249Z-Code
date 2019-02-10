@@ -493,7 +493,7 @@ void picking(){
     int xpos;
     int ypos;
     while(true){
-        if(Brain.Screen.pressing())//finds the position of where is Pressed{
+        if(Brain.Screen.pressing()){//finds the position of where is Pressed
             xpos = Brain.Screen.xPosition();
             ypos = Brain.Screen.yPosition();
         }
@@ -689,7 +689,7 @@ void expermientalfinalproduct(){
 
 
 void pre_auton( void ) {
-    vex::task:sleep(1000);
+    vex::task::sleep(1000);
     restingLineOne = LineOne.value(vex::analogUnits::range12bit);
     restingLineTwo = LineTwo.value(vex::analogUnits::range12bit);
     
@@ -738,6 +738,17 @@ void shoot(){
 
 void wait(double t){
     vex::task::sleep(t);
+}
+
+void spinFly(double speed){
+    if(speed == 0){
+        FlywheelTop.stop(vex::brakeType::coast);
+        FlywheelBot.stop(vex::brakeType::coast);
+    }
+    else{
+        FlywheelTop.spin(vex::directionType::fwd, speed, vex::velocityUnits::rpm);
+        FlywheelBot.spin(vex::directionType::fwd, speed, vex::velocityUnits::rpm);
+    }
 }
 
 double ticksToInches(double ticks){
