@@ -1,0 +1,1171 @@
+#include "robot-config.h"
+#include <math.h>
+/*---------------------------------------------------------------------------*/
+/*                                                                           */
+/*        Description: Competition template for VCS VEX V5                    */
+/*                                                                           */
+/*---------------------------------------------------------------------------*/
+
+//Creates a competition object that allows access to Competition methods.
+vex::competition    Competition;
+
+double flySpeed = 200.0;
+bool flywheelIsOn = true;
+double oldSpeed = 200.0;
+bool over = false;
+bool isShooting = false;
+double restingLineOne = 0.0;
+double restingLineTwo = 0.0;
+
+int alliance = 0;
+int plat = 0;
+int pos = 0;
+/*---------------------------------------------------------------------------*/
+/*                          Pre-Autonomous Functions                         */
+/*                                                                           */
+/*  You may want to perform some actions before the competition starts.      */
+/*  Do them in the following function.  You must return from this function   */
+/*  or the autonomous and usercontrol tasks will not be started.  This       */
+/*  function is only called once after the cortex has been powered on and    */ 
+/*  not every time that the robot is disabled.                               */
+/*---------------------------------------------------------------------------*/
+bool RCS= true; 
+bool RFS= true;
+bool BCS= true;
+bool BFS= true;
+void buildoriginalscreen(int x){
+    //builds half the screen as the board
+    Brain.Screen.setFillColor("#7e7e7e");
+    Brain.Screen.setPenWidth(0);
+    Brain.Screen.setPenColor(vex::color::white);
+    Brain.Screen.drawRectangle(240-x,0,240,240);
+    
+    //Builds red starts squares
+    Brain.Screen.setFillColor(vex::color::red);
+    Brain.Screen.drawRectangle(240-x,80,40,40);
+    Brain.Screen.drawRectangle(240-x,160,40,40);
+    
+    //Builds  blue start squares
+    Brain.Screen.setFillColor(vex::color::blue);
+    Brain.Screen.drawRectangle(440-x,80,40,40);
+    Brain.Screen.drawRectangle(440-x,160,40,40);
+    
+    //Builds auton and lift EXTEND area lines
+    Brain.Screen.setFillColor(vex::color::white);
+    //Horizontal lines  
+    Brain.Screen.drawRectangle(240-x,119,40,2);
+    Brain.Screen.drawRectangle(440-x,119,40,2);
+    Brain.Screen.drawRectangle(280-x,199,160,2);
+    //Vertical Lines
+    Brain.Screen.drawRectangle(356-x,0,2,240);
+    Brain.Screen.drawRectangle(362-x,0,2,240);
+    Brain.Screen.drawRectangle(279-x,120,2,80);
+    Brain.Screen.drawRectangle(439-x,120,2,80);
+    
+    //Builds flag poles
+    Brain.Screen.setFillColor(vex::color::black);
+    Brain.Screen.drawRectangle(278-x,0,4,40);
+    Brain.Screen.drawRectangle(358-x,0,4,40);
+    Brain.Screen.drawRectangle(438-x,0,4,40);
+    
+    //Builds blue caps standing caps (with two balls)
+    Brain.Screen.setFillColor(vex::color::blue);
+    Brain.Screen.setPenWidth(1);
+    Brain.Screen.setPenColor(vex::color::black);
+    Brain.Screen.drawCircle(300-x,60,8);
+    Brain.Screen.drawCircle(300-x,60,3);
+    Brain.Screen.drawCircle(340-x,220,8);
+    Brain.Screen.drawCircle(340-x,220,3);
+    //the two balls on each of the caps
+    Brain.Screen.setFillColor(vex::color::yellow);
+    Brain.Screen.drawCircle(296-x,55,2);
+    Brain.Screen.drawCircle(304-x,65,2);
+    Brain.Screen.drawCircle(340-x,225,2);
+    Brain.Screen.drawCircle(340-x,215,2);
+    
+    //Builds side blue caps
+    Brain.Screen.setFillColor(vex::color::black);
+    Brain.Screen.drawCircle(380-x,100,6);
+    Brain.Screen.drawCircle(380-x,180,6);
+    Brain.Screen.setFillColor(vex::color::blue);
+    Brain.Screen.drawCircle(377-x,100,6);
+    Brain.Screen.drawCircle(376-x,100,2);
+    Brain.Screen.drawCircle(377-x,180,6);
+    Brain.Screen.drawCircle(376-x,180,2);
+    
+    //Builds red caps standing caps (with two balls)
+    Brain.Screen.setFillColor(vex::color::red);
+    Brain.Screen.setPenColor(vex::color::black);
+    Brain.Screen.drawCircle(420-x,60,8);
+    Brain.Screen.drawCircle(420-x,60,4);
+    Brain.Screen.drawCircle(380-x,220,8);
+    Brain.Screen.drawCircle(380-x,220,4);
+    //the two balls on each of the caps
+    Brain.Screen.setFillColor(vex::color::yellow);
+    Brain.Screen.drawCircle(424-x,55,2);
+    Brain.Screen.drawCircle(416-x,65,2);
+    Brain.Screen.drawCircle(380-x,225,2);
+    Brain.Screen.drawCircle(380-x,215,2);
+    
+    //Builds side red caps
+    Brain.Screen.setFillColor(vex::color::black);
+    Brain.Screen.drawCircle(339-x,100,6);
+    Brain.Screen.drawCircle(339-x,180,6);
+    Brain.Screen.setFillColor(vex::color::red);
+    Brain.Screen.drawCircle(342-x,100,6);
+    Brain.Screen.drawCircle(343-x,100,2);
+    Brain.Screen.drawCircle(342-x,180,6);
+    Brain.Screen.drawCircle(343-x,180,2);
+    
+    //builds platforms
+    Brain.Screen.setFillColor(vex::color::red);
+    Brain.Screen.setPenWidth(0);
+    Brain.Screen.drawRectangle(300-x,120,40,40);
+    Brain.Screen.setFillColor(vex::color::blue);
+    Brain.Screen.setPenWidth(0);
+    Brain.Screen.drawRectangle(380-x,120,40,40);
+    Brain.Screen.setFillColor(vex::color::yellow);
+    Brain.Screen.setPenWidth(0);
+    Brain.Screen.drawRectangle(340-x,120,40,40);
+        
+    //places balls on platforms
+    Brain.Screen.setFillColor(vex::color::yellow);
+    Brain.Screen.setPenWidth(1);
+    Brain.Screen.setPenColor(vex::color::black);
+    Brain.Screen.drawCircle(301-x,121,3);
+    Brain.Screen.drawCircle(301-x,159,3);
+    Brain.Screen.drawCircle(419-x,121,3);
+    Brain.Screen.drawCircle(419-x,159,3);
+    
+    //place edges on platforms
+    Brain.Screen.setFillColor(vex::color::black);
+    Brain.Screen.drawCircle(341-x,121,3);
+    Brain.Screen.drawCircle(341-x,159,3);
+    Brain.Screen.drawCircle(379-x,121,3);
+    Brain.Screen.drawCircle(379-x,159,3);
+    
+    // creates inside for platforsm
+    Brain.Screen.setFillColor("#666666");
+    Brain.Screen.setPenWidth(0);
+    Brain.Screen.setPenColor(vex::color::black);
+    Brain.Screen.drawRectangle(305-x,125,30,30);
+    Brain.Screen.drawRectangle(345-x,125,30,30);
+    Brain.Screen.drawRectangle(385-x,125,30,30);
+}
+void leftFlagToggle(bool TL, bool ML, bool BL){
+    bool topL= TL;
+    bool middleL= ML;
+    bool bottomL= BL;
+    
+    Brain.Screen.setPenColor(vex::color::white);
+    if(topL==true){
+        Brain.Screen.setFillColor(vex::color::red);
+        Brain.Screen.setPenWidth(0);
+        Brain.Screen.drawRectangle(282,0,8,8);
+        Brain.Screen.setFillColor(vex::color::green);
+        Brain.Screen.drawRectangle(290,0,3,8);   
+    }
+    else{
+        Brain.Screen.setFillColor(vex::color::blue);
+        Brain.Screen.setPenWidth(0);
+        Brain.Screen.drawRectangle(270,0,8,8);
+        Brain.Screen.setFillColor(vex::color::green);
+        Brain.Screen.drawRectangle(267,0,3,8); 
+    }
+    if(middleL==true){
+        Brain.Screen.setFillColor(vex::color::red);
+        Brain.Screen.setPenWidth(0);
+        Brain.Screen.drawRectangle(282,11,8,8);
+        Brain.Screen.setFillColor(vex::color::green);
+        Brain.Screen.drawRectangle(290,11,3,8);   
+    }
+    else{
+        Brain.Screen.setFillColor(vex::color::blue);
+        Brain.Screen.setPenWidth(0);
+        Brain.Screen.drawRectangle(270,11,8,8);
+        Brain.Screen.setFillColor(vex::color::green);
+        Brain.Screen.drawRectangle(267,11,3,8); 
+    }
+    if(bottomL==true){
+        Brain.Screen.setFillColor(vex::color::red);
+        Brain.Screen.setPenWidth(0);
+        Brain.Screen.drawRectangle(282,22,8,8);
+        Brain.Screen.setFillColor(vex::color::green);
+        Brain.Screen.drawRectangle(290,22,3,8);   
+    }
+    else{
+        Brain.Screen.setFillColor(vex::color::blue);
+        Brain.Screen.setPenWidth(0);
+        Brain.Screen.drawRectangle(270,22,8,8);
+        Brain.Screen.setFillColor(vex::color::green);
+        Brain.Screen.drawRectangle(267,22,3,8); 
+    }
+}
+
+
+void middleFlagToggle(int TM, int MM, int BM){
+    int topM= TM;
+    int middleM= MM;
+    int bottomM= BM;
+    switch(topM){
+        case 1:
+            Brain.Screen.setFillColor(vex::color::red);
+            Brain.Screen.setPenWidth(0);
+            Brain.Screen.drawRectangle(362,0,8,8);
+            Brain.Screen.setFillColor(vex::color::green);
+            Brain.Screen.drawRectangle(370,0,3,8);
+            break;
+        case 0:
+            Brain.Screen.setFillColor(vex::color::red);
+            Brain.Screen.setPenWidth(0);
+            Brain.Screen.drawRectangle(362,0,8,8);
+            Brain.Screen.setFillColor(vex::color::green);
+            Brain.Screen.drawRectangle(370,0,3,8);
+            Brain.Screen.setFillColor(vex::color::blue);
+            Brain.Screen.setPenWidth(0);
+            Brain.Screen.drawRectangle(350,0,8,8);
+            Brain.Screen.setFillColor(vex::color::green);
+            Brain.Screen.drawRectangle(347,0,3,8); 
+            break;
+        case -1:
+            Brain.Screen.setFillColor(vex::color::blue);
+            Brain.Screen.setPenWidth(0);
+            Brain.Screen.drawRectangle(350,0,8,8);
+            Brain.Screen.setFillColor(vex::color::green);
+            Brain.Screen.drawRectangle(347,0,3,8); 
+            break;
+    }
+    switch(middleM){
+        case 1:
+            Brain.Screen.setFillColor(vex::color::red);
+            Brain.Screen.setPenWidth(0);
+            Brain.Screen.drawRectangle(362,11,8,8);
+            Brain.Screen.setFillColor(vex::color::green);
+            Brain.Screen.drawRectangle(370,11,3,8);
+            break;
+        case 0:
+            Brain.Screen.setFillColor(vex::color::red);
+            Brain.Screen.setPenWidth(0);
+            Brain.Screen.drawRectangle(362,11,8,8);
+            Brain.Screen.setFillColor(vex::color::green);
+            Brain.Screen.drawRectangle(370,11,3,8);
+            Brain.Screen.setFillColor(vex::color::blue);
+            Brain.Screen.setPenWidth(0);
+            Brain.Screen.drawRectangle(350,11,8,8);
+            Brain.Screen.setFillColor(vex::color::green);
+            Brain.Screen.drawRectangle(347,11,3,8); 
+            break;
+        case -1:
+            Brain.Screen.setFillColor(vex::color::blue);
+            Brain.Screen.setPenWidth(0);
+            Brain.Screen.drawRectangle(350,11,8,8);
+            Brain.Screen.setFillColor(vex::color::green);
+            Brain.Screen.drawRectangle(347,11,3,8); 
+            break;
+    }
+    switch(bottomM){
+        case 1:
+            Brain.Screen.setFillColor(vex::color::red);
+            Brain.Screen.setPenWidth(0);
+            Brain.Screen.drawRectangle(362,22,8,8);
+            Brain.Screen.setFillColor(vex::color::green);
+            Brain.Screen.drawRectangle(370,11,3,8);
+            break;
+        case 0:
+            Brain.Screen.setFillColor(vex::color::red);
+            Brain.Screen.setPenWidth(0);
+            Brain.Screen.drawRectangle(362,22,8,8);
+            Brain.Screen.setFillColor(vex::color::green);
+            Brain.Screen.drawRectangle(370,22,3,8);
+            Brain.Screen.setFillColor(vex::color::blue);
+            Brain.Screen.setPenWidth(0);
+            Brain.Screen.drawRectangle(350,22,8,8);
+            Brain.Screen.setFillColor(vex::color::green);
+            Brain.Screen.drawRectangle(347,22,3,8); 
+            break;
+        case -1:
+            Brain.Screen.setFillColor(vex::color::blue);
+            Brain.Screen.setPenWidth(0);
+            Brain.Screen.drawRectangle(350,22,8,8);
+            Brain.Screen.setFillColor(vex::color::green);
+            Brain.Screen.drawRectangle(347,22,3,8); 
+            break;
+    }
+}
+void rightFlagToggle(bool TR, bool MR, bool BR){
+    bool topR= TR;
+    bool middleR= MR;
+    bool bottomR= BR;
+  
+    if(topR==true){
+        Brain.Screen.setFillColor(vex::color::blue);
+        Brain.Screen.setPenWidth(0);
+        Brain.Screen.drawRectangle(430,0,8,8);
+        Brain.Screen.setFillColor(vex::color::green);
+        Brain.Screen.drawRectangle(427,0,3,8); 
+    }
+    else{
+        Brain.Screen.setFillColor(vex::color::red);
+        Brain.Screen.setPenWidth(0);
+        Brain.Screen.drawRectangle(442,0,8,8);
+        Brain.Screen.setFillColor(vex::color::green);
+        Brain.Screen.drawRectangle(450,0,3,8);    
+    }
+    if(middleR==true){
+        Brain.Screen.setFillColor(vex::color::blue);
+        Brain.Screen.setPenWidth(0);
+        Brain.Screen.drawRectangle(430,11,8,8);
+        Brain.Screen.setFillColor(vex::color::green);
+        Brain.Screen.drawRectangle(427,11,3,8);
+    }
+    else{
+        Brain.Screen.setFillColor(vex::color::red);
+        Brain.Screen.setPenWidth(0);
+        Brain.Screen.drawRectangle(442,11,8,8);
+        Brain.Screen.setFillColor(vex::color::green);
+        Brain.Screen.drawRectangle(450,11,3,8);
+    }
+    if(bottomR==true){
+        Brain.Screen.setFillColor(vex::color::blue);
+        Brain.Screen.setPenWidth(0);
+        Brain.Screen.drawRectangle(430,22,8,8);
+        Brain.Screen.setFillColor(vex::color::green);
+        Brain.Screen.drawRectangle(427,22,3,8);
+    }
+    else{
+        Brain.Screen.setFillColor(vex::color::red);
+        Brain.Screen.setPenWidth(0);
+        Brain.Screen.drawRectangle(442,22,8,8);
+        Brain.Screen.setFillColor(vex::color::green);
+        Brain.Screen.drawRectangle(450,22,3,8);  
+    }
+}
+
+void selectionbuttons(){
+    //Base choosing squares
+    Brain.Screen.setFont(vex::fontType::mono20);
+    Brain.Screen.setPenWidth(0);
+    Brain.Screen.setPenColor(vex::color::black);
+    
+    Brain.Screen.setFillColor(vex::color::red);
+    Brain.Screen.drawRectangle(0,0,90,60);
+    Brain.Screen.drawRectangle(0,60,90,60);
+    
+    Brain.Screen.setFillColor(vex::color::blue);
+    Brain.Screen.drawRectangle(0,120,90,60);
+    Brain.Screen.drawRectangle(0,180,90,60);
+
+    Brain.Screen.setFillColor("#b1b1b1");
+    Brain.Screen.drawRectangle(180,0,60,240);
+    //borders in between buttons
+    Brain.Screen.setFillColor(vex::color::black);
+    Brain.Screen.drawRectangle(0,59,90,2);
+    Brain.Screen.drawRectangle(0,119,90,2);
+    Brain.Screen.drawRectangle(0,179,90,2);
+    Brain.Screen.drawRectangle(179,0,2,240);
+    
+    //puts the text
+    Brain.Screen.setFillColor(vex::color::red);
+    if(RCS)
+        Brain.Screen.printAt(10,20,"Close");
+    else{
+        Brain.Screen.printAt(10,20,"Close");
+        Brain.Screen.printAt(10,40,"Plat.");
+    }
+    if(RFS)
+        Brain.Screen.printAt(10,80,"Far");
+    else{
+        Brain.Screen.printAt(10,80,"Far");
+        Brain.Screen.printAt(10,100,"Plat.");
+    }
+      
+    Brain.Screen.setFillColor(vex::color::blue);
+    if(BCS)
+        Brain.Screen.printAt(10,140,"Close");
+    else{
+        Brain.Screen.printAt(10,140,"Close");
+        Brain.Screen.printAt(10,160,"Plat.");
+    }
+        
+    if(BFS)
+        Brain.Screen.printAt(10,200,"Far");
+    else{
+        Brain.Screen.printAt(10,200,"Far");
+        Brain.Screen.printAt(10,220,"Plat.");
+    }
+}
+void intialswitches(){      
+    Brain.Screen.setFillColor("#C0C0C0");
+    Brain.Screen.setPenWidth(0);
+    Brain.Screen.setPenColor(vex::color::black);
+    
+    //First RedClose Switch
+    Brain.Screen.drawCircle(120,30,15);
+    Brain.Screen.drawCircle(150,30,15);
+    Brain.Screen.drawRectangle(120,15,30,31);
+    
+    if(RCS){
+        //Circle Inside Switch RedClose left
+        Brain.Screen.setPenWidth(1);
+        Brain.Screen.setFillColor("#696969");
+        Brain.Screen.drawCircle(120,30,13);
+        Brain.Screen.setFillColor("#C0C0C0");
+        Brain.Screen.setPenWidth(0);   
+    }
+    else{ 
+        //Circle Inside Switch RedClose right
+        Brain.Screen.setPenWidth(1);
+        Brain.Screen.setFillColor("#696969");
+        Brain.Screen.drawCircle(150,30,13);
+        Brain.Screen.setFillColor("#C0C0C0");
+        Brain.Screen.setPenWidth(0);
+    }
+    
+    //Second RedFar Switch
+    Brain.Screen.drawCircle(120,90,15);
+    Brain.Screen.drawCircle(150,90,15);
+    Brain.Screen.drawRectangle(120,75,30,31);
+ 
+    if(RFS){
+        //Circle Inside Switch RedFar left
+        Brain.Screen.setPenWidth(1);
+        Brain.Screen.setFillColor("#696969");
+        Brain.Screen.drawCircle(120,90,13);
+        Brain.Screen.setFillColor("#C0C0C0");
+        Brain.Screen.setPenWidth(0);   
+    }
+    else{ 
+        //Circle Inside Switch RedFar right
+        Brain.Screen.setPenWidth(1);
+        Brain.Screen.setFillColor("#696969");
+        Brain.Screen.drawCircle(150,90,13);
+        Brain.Screen.setFillColor("#C0C0C0");
+        Brain.Screen.setPenWidth(0);
+    }
+    
+    //Third BlueClose Switch
+    Brain.Screen.drawCircle(120,150,15);
+    Brain.Screen.drawCircle(150,150,15);
+    Brain.Screen.drawRectangle(120,135,30,31);
+
+    if(BCS){
+        //Circle Inside Switch BlueClose left
+        Brain.Screen.setPenWidth(1);
+        Brain.Screen.setFillColor("#696969");
+        Brain.Screen.drawCircle(120,150,13);
+        Brain.Screen.setFillColor("#C0C0C0");
+        Brain.Screen.setPenWidth(0);   
+    }
+    else{ 
+        //Circle Inside Switch BlueClose right
+        Brain.Screen.setPenWidth(1);
+        Brain.Screen.setFillColor("#696969");
+        Brain.Screen.drawCircle(150,150,13);
+        Brain.Screen.setFillColor("#C0C0C0");
+        Brain.Screen.setPenWidth(0);
+    }
+    
+    //Fourth BlueFar Switch
+    Brain.Screen.drawCircle(120,210,15);
+    Brain.Screen.drawCircle(150,210,15);
+    Brain.Screen.drawRectangle(120,195,30,31);
+   
+    if(BFS){
+        //Circle Inside Switch BlueFar left
+        Brain.Screen.setPenWidth(1);
+        Brain.Screen.setFillColor("#696969");
+        Brain.Screen.drawCircle(120,210,13);
+        Brain.Screen.setFillColor("#C0C0C0");
+        Brain.Screen.setPenWidth(0);   
+    }
+    else{ 
+        //Circle Inside Switch BlueFar right
+        Brain.Screen.setPenWidth(1);
+        Brain.Screen.setFillColor("#696969");
+        Brain.Screen.drawCircle(150,210,13);
+        Brain.Screen.setFillColor("#C0C0C0");
+        Brain.Screen.setPenWidth(0);
+    }
+}
+void picking(){
+    Brain.Screen.setFont(vex::fontType::mono20);
+    Brain.Screen.setPenColor(vex::color::white);
+    int xpos;
+    int ypos;
+    while(true){
+        if(Brain.Screen.pressing())//finds the position of where is Pressed{
+            xpos = Brain.Screen.xPosition();
+            ypos = Brain.Screen.yPosition();
+        }
+        
+        //RCS
+        if(xpos > 105 && xpos < 165 && ypos > 15 && ypos < 46){
+            if(RCS== true){
+               RCS = false;
+            }
+            else if(RCS== false){
+               RCS = true;
+            }
+            intialswitches();
+            selectionbuttons();
+            xpos=0;
+            ypos=0;
+            //to activate skills
+            if(RCS==false && RFS==false && BCS==false && BFS==false){
+               Brain.Screen.clearScreen();
+               alliance = 2;
+               break;
+            }
+            vex::task::sleep(250);
+        }
+        //RFS
+        if(xpos > 105 && xpos < 165 && ypos > 75 && ypos < 106){
+            if(RFS== true){
+               RFS = false;
+            }
+            else if(RFS== false){
+               RFS = true;
+            }
+            intialswitches();
+            selectionbuttons();
+            xpos=0;
+            ypos=0;
+            //to activate skills
+            if(RCS==false && RFS==false && BCS==false && BFS==false){
+               Brain.Screen.clearScreen();
+               alliance = 2;
+               break;
+            }
+            vex::task::sleep(250);
+        }
+        //BCS
+        if(xpos > 105 && xpos < 165 && ypos > 135 && ypos < 166){
+            if(BCS== true){
+               BCS = false;
+            }
+            else if(BCS== false){
+               BCS = true;
+            }
+            intialswitches();
+            selectionbuttons();
+            xpos=0;
+            ypos=0;
+            //to activate skills
+            if(RCS==false && RFS==false && BCS==false && BFS==false){
+               Brain.Screen.clearScreen();
+               alliance = 2;
+               break;
+            }
+            vex::task::sleep(250);
+        }
+        //BFS
+        if(xpos > 105 && xpos < 165 && ypos > 195 && ypos < 226){
+            if(BFS== true){
+               BFS = false;
+            }
+            else if(BFS== false){
+               BFS = true;
+            }
+            intialswitches();
+            selectionbuttons();
+            xpos=0;
+            ypos=0;
+            //to activate skills
+            if(RCS==false && RFS==false && BCS==false && BFS==false){
+               Brain.Screen.clearScreen();
+               alliance = 2;
+               break;
+            }
+            vex::task::sleep(250);
+        }
+        
+        //redclose
+        if(xpos > 0 && xpos < 90 && ypos > 0 && ypos < 60){
+            Brain.Screen.setFillColor(vex::color::green);
+            Brain.Screen.setPenWidth(0);
+            Brain.Screen.drawRectangle(181,0,59,60);
+            xpos = Brain.Screen.xPosition();
+            ypos = Brain.Screen.yPosition();
+            if(xpos > 181 && xpos < 240 && ypos > 0 && ypos < 60){
+                Brain.Screen.clearScreen();
+                if(RCS){
+                    alliance = 0;
+                    plat = 0;
+                    pos = 0;
+                }
+                else {
+                    alliance = 0;
+                    plat = 1;
+                    pos = 0;
+                }
+                break;
+            }
+        }
+        //redfar
+        if(xpos > 0 && xpos < 90 && ypos > 60 && ypos < 120){
+            Brain.Screen.setFillColor(vex::color::green);
+            Brain.Screen.setPenWidth(0);
+            Brain.Screen.drawRectangle(181,60,59,60);
+            xpos = Brain.Screen.xPosition();
+            ypos = Brain.Screen.yPosition();
+            if(xpos > 181 && xpos < 240 && ypos > 60 && ypos < 120){
+                Brain.Screen.clearScreen();
+                if(RFS){
+                    alliance = 0;
+                    plat = 0;
+                    pos = 1;
+                }
+                else {
+                    alliance = 0;
+                    plat = 1;
+                    pos = 1;
+                }
+                break;
+            }
+        }
+        //blueclose
+        if(xpos > 0 && xpos < 90 && ypos > 120 && ypos < 180){
+            Brain.Screen.setFillColor(vex::color::green);
+            Brain.Screen.setPenWidth(0);
+            Brain.Screen.drawRectangle(181,120,59,60);
+            xpos = Brain.Screen.xPosition();
+            ypos = Brain.Screen.yPosition();
+            if(xpos > 181 && xpos < 240 && ypos > 120 && ypos < 180){
+                Brain.Screen.clearScreen();
+                if(BCS){
+                    alliance = 1;
+                    plat = 0;
+                    pos = 0;
+                }
+                else {
+                    alliance = 1;
+                    plat = 1;
+                    pos = 0;
+                }
+                break;
+            }
+        }
+        //bluefar
+        if(xpos > 0 && xpos < 90 && ypos > 180 && ypos < 240){
+            Brain.Screen.setFillColor(vex::color::green);
+            Brain.Screen.setPenWidth(0);
+            Brain.Screen.drawRectangle(181,180,59,60);
+            xpos = Brain.Screen.xPosition();
+            ypos = Brain.Screen.yPosition();
+            if(xpos > 181 && xpos < 240 && ypos > 180 && ypos < 240){
+                Brain.Screen.clearScreen();
+                if(BFS){
+                    alliance = 1;
+                    plat = 0;
+                    pos = 1;
+                }
+                else {
+                    alliance = 1;
+                    plat = 1;
+                    pos = 1;
+                }
+                break;
+            }
+        }
+        //to keep the confirmation area gray
+        if(Brain.Screen.pressing() && xpos < 180){
+            Brain.Screen.setFillColor("#b1b1b1");
+            Brain.Screen.drawRectangle(181,0,59,240);
+        } 
+    }
+}
+void expermientalfinalproduct(){
+    Brain.Screen.clearScreen("#000080");
+    buildoriginalscreen(120);
+    Brain.Screen.setFillColor(vex::color::black);
+    Brain.Screen.setPenWidth(0);
+    Brain.Screen.drawRectangle(0,0,2,240);
+    Brain.Screen.drawRectangle(0,0,2,240);
+    Brain.Screen.drawRectangle(0,0,2,240);
+    Brain.Screen.drawRectangle(0,0,2,240);
+    Brain.Screen.drawRectangle(0,0,2,240);
+    Brain.Screen.drawRectangle(0,0,2,240);
+}
+
+
+void pre_auton( void ) {
+    vex::task:sleep(1000);
+    restingLineOne = LineOne.value(vex::analogUnits::range12bit);
+    restingLineTwo = LineTwo.value(vex::analogUnits::range12bit);
+    
+    buildoriginalscreen(0);
+    rightFlagToggle(false,false,false);
+    middleFlagToggle(0,0,0);
+    leftFlagToggle(false,false,false);
+    selectionbuttons();
+    intialswitches();
+    picking();
+}
+
+
+
+void toggleFly(){
+    flywheelIsOn = !flywheelIsOn;
+    if(!flywheelIsOn){
+        oldSpeed = flySpeed;
+        flySpeed = 0.0;
+    }
+    else{
+        flySpeed = oldSpeed;
+    }
+}
+
+
+
+void switchAutoIntake(){
+    if(over == true){
+        over = false;
+    }
+    else{
+        over = true;
+    }
+}
+
+
+void shoot(){
+    if(over == false){
+        isShooting = true;
+        Indexer.resetRotation();
+        Indexer.rotateTo(300, vex::rotationUnits::deg,80, vex::velocityUnits::pct);
+        isShooting = false;
+    }
+}
+
+void wait(double t){
+    vex::task::sleep(t);
+}
+
+double ticksToInches(double ticks){
+    double inches = (ticks * (M_PI))/(90.0);
+    return inches;
+}
+
+double inchesToTicks(double inches){
+    double ticks = (inches * 90.0)/(M_PI);
+    return ticks;
+}
+
+double ticksToDegrees(double ticks){
+    double deg = (ticks * 90.0)/(314.0);
+    return deg;
+}
+
+double degreesToTicks(double deg){
+    double ticks = (deg * 314.0)/(90.0);
+    return ticks;
+}
+
+void move(double inch, double speed = 170.0){
+    RightFChassis.setStopping(vex::brakeType::brake);
+    RightBChassis.setStopping(vex::brakeType::brake);
+    LeftFChassis.setStopping(vex::brakeType::brake);
+    LeftBChassis.setStopping(vex::brakeType::brake);
+    double goalRF = RightFChassis.rotation(vex::rotationUnits::deg) + inchesToTicks(inch);
+    double goalLF = LeftFChassis.rotation(vex::rotationUnits::deg) + inchesToTicks(inch);
+    double goalRB = RightBChassis.rotation(vex::rotationUnits::deg) + inchesToTicks(inch);
+    double goalLB = LeftBChassis.rotation(vex::rotationUnits::deg) + inchesToTicks(inch);
+    RightFChassis.startRotateTo(goalRF,vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    LeftFChassis.startRotateTo(goalLF, vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    RightBChassis.startRotateTo(goalRB,vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    LeftBChassis.rotateTo(goalLB, vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    RightFChassis.setStopping(vex::brakeType::brake);
+    RightBChassis.setStopping(vex::brakeType::brake);
+    LeftFChassis.setStopping(vex::brakeType::brake);
+    LeftBChassis.setStopping(vex::brakeType::brake);
+}
+
+void turn(double deg, double speed = 120.0){
+    RightFChassis.setStopping(vex::brakeType::brake);
+    RightBChassis.setStopping(vex::brakeType::brake);
+    LeftFChassis.setStopping(vex::brakeType::brake);
+    LeftBChassis.setStopping(vex::brakeType::brake);
+    double goalRF = RightFChassis.rotation(vex::rotationUnits::deg) - degreesToTicks(deg);
+    double goalLF = LeftFChassis.rotation(vex::rotationUnits::deg) + degreesToTicks(deg);
+    double goalRB = RightBChassis.rotation(vex::rotationUnits::deg) - degreesToTicks(deg);
+    double goalLB = LeftBChassis.rotation(vex::rotationUnits::deg) + degreesToTicks(deg);
+    RightFChassis.startRotateTo(goalRF,vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    LeftFChassis.startRotateTo(goalLF, vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    RightBChassis.startRotateTo(goalRB,vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    LeftBChassis.rotateTo(goalLB, vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    RightFChassis.setStopping(vex::brakeType::brake);
+    RightBChassis.setStopping(vex::brakeType::brake);
+    LeftFChassis.setStopping(vex::brakeType::brake);
+    LeftBChassis.setStopping(vex::brakeType::brake);
+}
+
+/*---------------------------------------------------------------------------*/
+/*                                                                           */
+/*                              Autonomous Task                              */
+/*                                                                           */
+/*  This task is used to control your robot during the autonomous phase of   */
+/*  a VEX Competition.                                                       */
+/*                                                                           */
+/*  You must modify the code to add your own robot specific commands here.   */
+/*---------------------------------------------------------------------------*/
+
+void blueClose(){
+    Intake.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+    spinFly(200.0);
+    move(48.0, 150);
+    wait(200);
+    move(-47.0);
+    move(-1.25, 25);
+    wait(250);
+    move(10.0, 100);
+    wait(250);
+    turn(90.5);
+    wait(250);
+    move(19.0, 120);
+    Indexer.resetRotation();
+    wait(300);
+    Indexer.resetRotation();
+    Indexer.rotateTo(500, vex::rotationUnits::deg, 80, vex::velocityUnits::pct);
+    Indexer.resetRotation();
+    wait(300);
+    move(20.0);
+    Indexer.resetRotation();
+    wait(300);
+    Indexer.resetRotation();
+    Indexer.rotateTo(500, vex::rotationUnits::deg, 80, vex::velocityUnits::pct);
+    Indexer.resetRotation();
+    wait(200);
+    move(-12.0, 120);
+    wait(200);
+    turn(-90.0);
+    wait(200);
+    Intake.spin(vex::directionType::rev, 80, vex::velocityUnits::pct);
+    move(22.0, 95);
+    wait(150);
+    wait(100);
+    move(-32.0, 120);
+    move(-3.0, 50);
+    wait(200);
+    move(6.0, 100);
+    wait(200);
+    turn(97.5);
+    wait(200);
+    move(19.0, 120);
+}
+
+void blueClosePlatform(){
+    
+}
+
+void redClose(){
+    Intake.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+    spinFly(200.0);
+    move(48.0, 150);
+    wait(200);
+    move(-47.0);
+    move(-1.25, 25);
+    wait(250);
+    move(10.0, 100);
+    wait(250);
+    turn(-90.5);
+    wait(250);
+    move(19.0, 120);
+    Indexer.resetRotation();
+    wait(300);
+    Indexer.resetRotation();
+    Indexer.rotateTo(500, vex::rotationUnits::deg, 80, vex::velocityUnits::pct);
+    Indexer.resetRotation();
+    wait(300);
+    move(20.0);
+    Indexer.resetRotation();
+    wait(300);
+    Indexer.resetRotation();
+    Indexer.rotateTo(500, vex::rotationUnits::deg, 80, vex::velocityUnits::pct);
+    Indexer.resetRotation();
+    wait(200);
+    move(-12.0, 120);
+    wait(200);
+    turn(90.0);
+    wait(200);
+    Intake.spin(vex::directionType::rev, 80, vex::velocityUnits::pct);
+    move(22.0, 95);
+    wait(150);
+    wait(100);
+    move(-32.0, 120);
+    move(-3.0, 50);
+    wait(200);
+    move(6.0, 100);
+    wait(200);
+    turn(-97.5);
+    wait(200);
+    move(19.0, 120);
+}
+
+void redClosePlatform(){
+    
+}
+
+void blueFar(){
+    Intake.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+    spinFly(194.0);
+    move(48.0, 160);
+    wait(200);
+    move(-15.0, 120);
+    Indexer.rotateTo(200, vex::rotationUnits::deg, 80, vex::velocityUnits::pct);
+    Indexer.resetRotation();
+    wait(200);
+    turn(-90.0);
+    wait(200);
+    Intake.stop(vex::brakeType::hold);
+    move(22.0,100);
+    wait(200);
+    Intake.spin(vex::directionType::rev, 100, vex::velocityUnits::pct);
+    turn(91.0);
+    wait(200);
+    move(20.0, 100);
+    wait(200);
+    Intake.stop(vex::brakeType::hold);
+    move(-50.0, 160);
+    move(-5, 50);
+    wait(200);
+    move(12.0, 100);
+    wait(200);
+    turn(90.0);
+    wait(200);
+    move(-7.0, 50);
+    wait(200);
+    move(15.0, 100);
+    wait(200);
+    turn(-25.5);
+    wait(300);
+    Intake.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+    Indexer.resetRotation();
+    Indexer.rotateTo(350, vex::rotationUnits::deg, 80, vex::velocityUnits::pct);
+    Indexer.resetRotation();
+    wait(250);
+    spinFly(182.0);
+    wait(550);
+    Indexer.resetRotation();
+    Indexer.rotateTo(400, vex::rotationUnits::deg, 80, vex::velocityUnits::pct);
+    Indexer.resetRotation();
+}
+
+void blueFarPlatform(){
+    
+}
+
+void redFar(){
+    Intake.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+    spinFly(194.0);
+    move(48.0, 160);
+    wait(200);
+    move(-15.0, 120);
+    Indexer.rotateTo(200, vex::rotationUnits::deg, 80, vex::velocityUnits::pct);
+    Indexer.resetRotation();
+    wait(200);
+    turn(90.0);
+    wait(200);
+    Intake.stop(vex::brakeType::hold);
+    move(22.0,100);
+    wait(200);
+    Intake.spin(vex::directionType::rev, 100, vex::velocityUnits::pct);
+    turn(-91.0);
+    wait(200);
+    move(20.0, 100);
+    wait(200);
+    Intake.stop(vex::brakeType::hold);
+    move(-50.0, 160);
+    move(-5, 50);
+    wait(200);
+    move(12.0, 100);
+    wait(200);
+    turn(-90.0);
+    wait(200);
+    move(-7.0, 50);
+    wait(200);
+    move(15.0, 100);
+    wait(200);
+    turn(25.5);
+    wait(300);
+    Intake.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+    Indexer.resetRotation();
+    Indexer.rotateTo(350, vex::rotationUnits::deg, 80, vex::velocityUnits::pct);
+    Indexer.resetRotation();
+    wait(250);
+    spinFly(182.0);
+    wait(550);
+    Indexer.resetRotation();
+    Indexer.rotateTo(400, vex::rotationUnits::deg, 80, vex::velocityUnits::pct);
+    Indexer.resetRotation();
+}
+
+void redFarPlatform(){
+    
+}
+
+void skills(){
+    
+}
+
+void autonomous( void ) {
+    if(alliance == 0){
+        if(pos == 0){
+            if(plat == 0){
+                redClose();
+            }
+            else{
+                redClosePlatform();
+            }
+        }
+        else{
+            if(plat == 0){
+                redFar();
+            }
+            else{
+                redFarPlatform();
+            }
+        }
+    }
+    else if(alliance == 1){
+        if(pos == 0){
+            if(plat == 0){
+                blueClose();
+            }
+            else{
+                blueClosePlatform();
+            }
+        }
+        else{
+            if(plat == 0){
+                blueFar();
+            }
+            else{
+                blueFarPlatform();
+            }
+        }
+    }
+    else{
+        skills();
+    }
+}
+
+/*---------------------------------------------------------------------------*/
+/*                                                                           */
+/*                              User Control Task                            */
+/*                                                                           */
+/*  This task is used to control your robot during the user control phase of */
+/*  a VEX Competition.                                                       */
+/*                                                                           */
+/*  You must modify the code to add your own robot specific commands here.   */
+/*---------------------------------------------------------------------------*/
+
+void usercontrol( void ) {
+    MainUser.ButtonY.pressed(toggleFly);
+    MainUser.ButtonR1.pressed(shoot);
+    MainUser.ButtonX.pressed(switchAutoIntake);
+    while(true){
+        int leftSpeedMainUser = 0.8*int(MainUser.Axis3.position(vex::percentUnits::pct)) + ((MainUser.Axis1.position(vex::percentUnits::pct)) + (MainUser.Axis2.position(vex::percentUnits::pct)));
+        int rightSpeedMainUser = 0.8*int(MainUser.Axis3.position(vex::percentUnits::pct)) - ((MainUser.Axis1.position(vex::percentUnits::pct)) + (MainUser.Axis2.position(vex::percentUnits::pct)));
+      
+        if(leftSpeedMainUser > 10 || leftSpeedMainUser < -10){
+            LeftFChassis.spin(vex::directionType::fwd,leftSpeedMainUser,vex::velocityUnits::pct);
+            LeftBChassis.spin(vex::directionType::fwd,leftSpeedMainUser,vex::velocityUnits::pct);
+        }
+        else{
+            LeftFChassis.spin(vex::directionType::fwd,0,vex::velocityUnits::pct);
+            LeftBChassis.spin(vex::directionType::fwd,0,vex::velocityUnits::pct);
+        }
+        
+        if(rightSpeedMainUser > 10 or rightSpeedMainUser < -10){
+            RightFChassis.spin(vex::directionType::fwd,rightSpeedMainUser,vex::velocityUnits::pct);
+            RightBChassis.spin(vex::directionType::fwd,rightSpeedMainUser,vex::velocityUnits::pct);
+        }
+        else{
+            RightFChassis.spin(vex::directionType::fwd,0,vex::velocityUnits::pct);
+            RightBChassis.spin(vex::directionType::fwd,0,vex::velocityUnits::pct);
+        }
+        
+        //Flywheel Control
+        if(flySpeed == 0.0){
+            FlywheelTop.stop(vex::brakeType::coast);
+            FlywheelBot.stop(vex::brakeType::coast);
+        }
+        else{
+            double error = FlywheelTop.velocity(vex::velocityUnits::pct) - flySpeed;
+            FlywheelTop.spin(vex::directionType::fwd, flySpeed - (error/2.0), vex::velocityUnits::rpm);
+            FlywheelBot.spin(vex::directionType::fwd, flySpeed - (error/2.0), vex::velocityUnits::rpm);
+        }
+        
+        //Intake/Indexer Control
+        if(over == false){
+            double diff = fabs(LineOne.value(vex::analogUnits::range12bit) - restingLineOne);
+            if(diff < 200.0){
+                if(MainUser.ButtonR2.pressing()){
+                    Intake.spin(vex::directionType::rev, 100, vex::velocityUnits::pct);
+                }
+                else if(isShooting == false){
+                    Intake.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+                    Indexer.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                }
+            }
+            else{
+                if(isShooting == false){
+                    Indexer.stop(vex::brakeType::hold);
+                }
+                double diffTwo = fabs(LineTwo.value(vex::analogUnits::range12bit) - restingLineTwo);
+                if(diffTwo < 40.0){
+                    if(MainUser.ButtonR2.pressing()){
+                        Intake.spin(vex::directionType::rev, 100, vex::velocityUnits::pct);
+                    }
+                    else if(isShooting == false){
+                        Intake.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+                    }
+                }
+                else{
+                    if(MainUser.ButtonR2.pressing()){
+                        Intake.spin(vex::directionType::rev, 100, vex::velocityUnits::pct);
+                    }
+                    else if(isShooting == false){
+                        Intake.stop(vex::brakeType::hold);
+                    }
+                }
+            }
+        }
+        else{
+            if(MainUser.ButtonL2.pressing()){
+                Intake.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+                Indexer.stop(vex::brakeType::hold);
+            }
+            else if(MainUser.ButtonR2.pressing()){
+                Intake.spin(vex::directionType::rev, 100, vex::velocityUnits::pct);
+                Indexer.stop(vex::brakeType::hold);
+            }
+            else if(MainUser.ButtonR1.pressing()){
+                Intake.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                Indexer.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+            }
+            else{
+                Intake.stop(vex::brakeType::hold);
+                Indexer.stop(vex::brakeType::hold);
+            }
+        }
+    }
+}
+
+//
+// Main will set up the competition functions and callbacks.
+//
+int main() {
+    
+    //Run the pre-autonomous function. 
+    pre_auton();
+    
+    //Set up callbacks for autonomous and driver control periods.
+    Competition.autonomous( autonomous );
+    Competition.drivercontrol( usercontrol );
+
+    //Prevent main from exiting with an infinite loop.                        
+    while(1) {
+      vex::task::sleep(100);//Sleep the task for a short amount of time to prevent wasted resources.
+    }    
+       
+}
