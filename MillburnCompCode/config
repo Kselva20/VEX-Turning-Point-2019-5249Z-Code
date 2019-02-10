@@ -1,0 +1,16 @@
+vex::brain Brain;
+vex::controller MainUser = vex::controller();
+vex::motor RightFChassis = vex::motor(vex::PORT15,vex::gearSetting::ratio18_1,true);
+vex::motor RightBChassis = vex::motor(vex::PORT14,vex::gearSetting::ratio18_1,true);
+
+vex::motor LeftFChassis = vex::motor(vex::PORT12,vex::gearSetting::ratio18_1,false);
+vex::motor LeftBChassis = vex::motor(vex::PORT13,vex::gearSetting::ratio18_1,false);
+
+vex::motor FlywheelTop = vex::motor(vex::PORT5,vex::gearSetting::ratio18_1,true);
+vex::motor FlywheelBot = vex::motor(vex::PORT1,vex::gearSetting::ratio18_1,true);
+
+vex::motor Indexer = vex::motor(vex::PORT3,vex::gearSetting::ratio18_1,true);
+vex::motor Intake = vex::motor(vex::PORT4,vex::gearSetting::ratio18_1,false);
+
+vex::line LineOne = vex::line(Brain.ThreeWirePort.B);
+vex::line LineTwo = vex::line(Brain.ThreeWirePort.A);
