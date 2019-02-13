@@ -1,0 +1,27 @@
+vex::brain Brain;
+vex::controller MainUser = vex::controller();
+vex::motor RightFChassis = vex::motor(vex::PORT15,vex::gearSetting::ratio18_1,true);
+vex::motor RightBChassis = vex::motor(vex::PORT14,vex::gearSetting::ratio18_1,true);
+
+vex::motor LeftFChassis = vex::motor(vex::PORT12,vex::gearSetting::ratio18_1,false);
+vex::motor LeftBChassis = vex::motor(vex::PORT13,vex::gearSetting::ratio18_1,false);
+
+vex::motor FlywheelTop = vex::motor(vex::PORT5,vex::gearSetting::ratio18_1,true);
+vex::motor FlywheelBot = vex::motor(vex::PORT1,vex::gearSetting::ratio18_1,true);
+
+vex::motor Indexer = vex::motor(vex::PORT3,vex::gearSetting::ratio18_1,true);
+vex::motor Intake = vex::motor(vex::PORT4,vex::gearSetting::ratio18_1,false);
+
+vex::line LineOne = vex::line(Brain.ThreeWirePort.B);
+vex::line LineTwo = vex::line(Brain.ThreeWirePort.A);
+
+vex::vision::signature SIG_1 (1, 0, 0, 0, 0, 0, 0, 3, 0);
+vex::vision::signature SIG_2 (2, 0, 0, 0, 0, 0, 0, 3, 0);
+vex::vision::signature SIG_3 (3, 0, 0, 0, 0, 0, 0, 3, 0);
+vex::vision::signature SIG_4 (4, 0, 0, 0, 0, 0, 0, 3, 0);
+vex::vision::signature SIG_5 (5, 0, 0, 0, 0, 0, 0, 3, 0);
+vex::vision::signature SIG_6 (6, 0, 0, 0, 0, 0, 0, 3, 0);
+vex::vision::signature SIG_7 (7, 0, 0, 0, 0, 0, 0, 3, 0);
+vex::vision::signature REDFLAG (1, 6769, 8097, 7434, -497, 513, 8, 4, 0);
+vex::vision::signature BLUEFLAG (2, -1653, -769, -1212, 2413, 4469, 3442, 2.9, 0);
+vex::vision Vision (vex::PORT10, 74, REDFLAG, BLUEFLAG, SIG_3, SIG_4, SIG_5, SIG_6, SIG_7);
