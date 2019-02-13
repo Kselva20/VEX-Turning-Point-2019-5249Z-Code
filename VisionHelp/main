@@ -1,0 +1,289 @@
+#include "robot-config.h"
+#include <math.h>
+          
+double flySpeed = 200.0;
+bool flywheelIsOn = true;
+double oldSpeed = 200.0;
+bool over = false;
+bool isShooting = false;
+double restingLineOne = 0.0;
+double restingLineTwo = 0.0;
+double speedModifier = 0.8;
+
+int alliance = 0;
+int plat = 0;
+int pos = 0;
+
+void toggleFly(){
+    flywheelIsOn = !flywheelIsOn;
+    if(!flywheelIsOn){
+        oldSpeed = flySpeed;
+        flySpeed = 0.0;
+    }
+    else{
+        flySpeed = oldSpeed;
+    }
+}
+
+void switchAutoIntake(){
+    if(over == true){
+        over = false;
+    }
+    else{
+        over = true;
+    }
+}
+
+void shoot(){
+    if(over == false){
+        isShooting = true;
+        Indexer.resetRotation();
+        Indexer.rotateTo(300, vex::rotationUnits::deg,80, vex::velocityUnits::pct);
+        isShooting = false;
+    }
+}
+
+void wait(double t){
+    vex::task::sleep(t);
+}
+
+void spinFly(double speed){
+    if(speed == 0){
+        FlywheelTop.stop(vex::brakeType::coast);
+        FlywheelBot.stop(vex::brakeType::coast);
+    }
+    else{
+        FlywheelTop.spin(vex::directionType::fwd, speed, vex::velocityUnits::rpm);
+        FlywheelBot.spin(vex::directionType::fwd, speed, vex::velocityUnits::rpm);
+    }
+}
+
+double ticksToInches(double ticks){
+    double inches = (ticks * (M_PI))/(90.0);
+    return inches;
+}
+
+double inchesToTicks(double inches){
+    double ticks = (inches * 90.0)/(M_PI);
+    return ticks;
+}
+
+double ticksToDegrees(double ticks){
+    double deg = (ticks * 90.0)/(314.0);
+    return deg;
+}
+
+double degreesToTicks(double deg){
+    double ticks = (deg * 314.0)/(90.0);
+    return ticks;
+}
+
+void move(double inch, double speed = 170.0){
+    RightFChassis.setStopping(vex::brakeType::brake);
+    RightBChassis.setStopping(vex::brakeType::brake);
+    LeftFChassis.setStopping(vex::brakeType::brake);
+    LeftBChassis.setStopping(vex::brakeType::brake);
+    double goalRF = RightFChassis.rotation(vex::rotationUnits::deg) + inchesToTicks(inch);
+    double goalLF = LeftFChassis.rotation(vex::rotationUnits::deg) + inchesToTicks(inch);
+    double goalRB = RightBChassis.rotation(vex::rotationUnits::deg) + inchesToTicks(inch);
+    double goalLB = LeftBChassis.rotation(vex::rotationUnits::deg) + inchesToTicks(inch);
+    RightFChassis.startRotateTo(goalRF,vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    LeftFChassis.startRotateTo(goalLF, vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    RightBChassis.startRotateTo(goalRB,vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    LeftBChassis.rotateTo(goalLB, vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    RightFChassis.setStopping(vex::brakeType::brake);
+    RightBChassis.setStopping(vex::brakeType::brake);
+    LeftFChassis.setStopping(vex::brakeType::brake);
+    LeftBChassis.setStopping(vex::brakeType::brake);
+}
+
+void turn(double deg, double speed = 120.0){
+    RightFChassis.setStopping(vex::brakeType::brake);
+    RightBChassis.setStopping(vex::brakeType::brake);
+    LeftFChassis.setStopping(vex::brakeType::brake);
+    LeftBChassis.setStopping(vex::brakeType::brake);
+    double goalRF = RightFChassis.rotation(vex::rotationUnits::deg) - degreesToTicks(deg);
+    double goalLF = LeftFChassis.rotation(vex::rotationUnits::deg) + degreesToTicks(deg);
+    double goalRB = RightBChassis.rotation(vex::rotationUnits::deg) - degreesToTicks(deg);
+    double goalLB = LeftBChassis.rotation(vex::rotationUnits::deg) + degreesToTicks(deg);
+    RightFChassis.startRotateTo(goalRF,vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    LeftFChassis.startRotateTo(goalLF, vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    RightBChassis.startRotateTo(goalRB,vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    LeftBChassis.rotateTo(goalLB, vex::rotationUnits::deg, speed, vex::velocityUnits::rpm);
+    RightFChassis.setStopping(vex::brakeType::brake);
+    RightBChassis.setStopping(vex::brakeType::brake);
+    LeftFChassis.setStopping(vex::brakeType::brake);
+    LeftBChassis.setStopping(vex::brakeType::brake);
+}
+
+void changeSpeed(){
+    if(speedModifier == 0.8){
+        speedModifier = 1.0;
+    }
+    else{
+        speedModifier = 0.8;
+    }
+}
+
+bool linedUp = false;
+
+int main() {
+    vex::task::sleep(1000);
+    restingLineOne = LineOne.value(vex::analogUnits::range12bit);
+    restingLineTwo = LineTwo.value(vex::analogUnits::range12bit);
+    MainUser.ButtonY.pressed(toggleFly);
+    MainUser.ButtonR1.pressed(shoot);
+    MainUser.ButtonX.pressed(switchAutoIntake);
+    MainUser.ButtonB.pressed(changeSpeed);
+    while(true){
+        if(MainUser.ButtonL1.pressing() == false){
+            linedUp = false;
+            int leftSpeedMainUser = int(speedModifier*MainUser.Axis3.position(vex::percentUnits::pct)) + ((MainUser.Axis1.position(vex::percentUnits::pct)) + (MainUser.Axis2.position(vex::percentUnits::pct)));
+            int rightSpeedMainUser = int(speedModifier*MainUser.Axis3.position(vex::percentUnits::pct)) - ((MainUser.Axis1.position(vex::percentUnits::pct)) + (MainUser.Axis2.position(vex::percentUnits::pct)));
+
+            if(leftSpeedMainUser > 10 || leftSpeedMainUser < -10){
+                LeftFChassis.spin(vex::directionType::fwd,leftSpeedMainUser,vex::velocityUnits::pct);
+                LeftBChassis.spin(vex::directionType::fwd,leftSpeedMainUser,vex::velocityUnits::pct);
+            }
+            else{
+                LeftFChassis.spin(vex::directionType::fwd,0,vex::velocityUnits::pct);
+                LeftBChassis.spin(vex::directionType::fwd,0,vex::velocityUnits::pct);
+            }
+
+            if(rightSpeedMainUser > 10 or rightSpeedMainUser < -10){
+                RightFChassis.spin(vex::directionType::fwd,rightSpeedMainUser,vex::velocityUnits::pct);
+                RightBChassis.spin(vex::directionType::fwd,rightSpeedMainUser,vex::velocityUnits::pct);
+            }
+            else{
+                RightFChassis.spin(vex::directionType::fwd,0,vex::velocityUnits::pct);
+                RightBChassis.spin(vex::directionType::fwd,0,vex::velocityUnits::pct);
+            }
+        }
+        else if(linedUp == false){
+            if(alliance == 1){
+                Vision.takeSnapshot(REDFLAG);
+                Brain.Screen.printAt(1,45,true,"Object Count: %d", Vision.objectCount);
+                double diff = 158.0 - Vision.largestObject.centerX;
+                double speed = 20.0;
+                if(diff < 0.0){
+                    speed = -20.0;
+                }
+                else if(fabs(diff) < 5.0){
+                    RightFChassis.stop(vex::brakeType::brake);
+                    RightBChassis.stop(vex::brakeType::brake);
+                    LeftFChassis.stop(vex::brakeType::brake);
+                    LeftBChassis.stop(vex::brakeType::brake);
+                    linedUp = true;
+                }
+
+                RightFChassis.spin(vex::directionType::fwd, speed, vex::velocityUnits::rpm);
+                RightBChassis.spin(vex::directionType::fwd, speed, vex::velocityUnits::rpm);
+                LeftFChassis.spin(vex::directionType::fwd, -speed, vex::velocityUnits::rpm);
+                LeftBChassis.spin(vex::directionType::fwd, -speed, vex::velocityUnits::rpm);
+            }
+            else{
+                Vision.takeSnapshot(BLUEFLAG);
+                Brain.Screen.printAt(1,45,true,"Object Count: %d", Vision.objectCount);
+                double diff = 158.0 - Vision.largestObject.centerX;
+                double speed = 20.0;
+                if(diff < 0.0){
+                    speed = -20.0;
+                }
+                else if(fabs(diff) < 5.0){
+                    RightFChassis.stop(vex::brakeType::brake);
+                    RightBChassis.stop(vex::brakeType::brake);
+                    LeftFChassis.stop(vex::brakeType::brake);
+                    LeftBChassis.stop(vex::brakeType::brake);
+                    linedUp = true;
+                }
+
+                RightFChassis.spin(vex::directionType::fwd, speed, vex::velocityUnits::rpm);
+                RightBChassis.spin(vex::directionType::fwd, speed, vex::velocityUnits::rpm);
+                LeftFChassis.spin(vex::directionType::fwd, -speed, vex::velocityUnits::rpm);
+                LeftBChassis.spin(vex::directionType::fwd, -speed, vex::velocityUnits::rpm);
+            }
+        }
+        else{
+            int leftSpeedMainUser = int(speedModifier*MainUser.Axis3.position(vex::percentUnits::pct));
+            int rightSpeedMainUser = int(speedModifier*MainUser.Axis3.position(vex::percentUnits::pct));
+            
+            if(leftSpeedMainUser < 10 && leftSpeedMainUser > -10){
+                leftSpeedMainUser = 0.0;
+                leftSpeedMainUser = 0.0;
+            }
+                
+            if(rightSpeedMainUser < 10 && rightSpeedMainUser > -10){
+                rightSpeedMainUser = 0.0;
+                rightSpeedMainUser = 0.0;
+            }
+            RightFChassis.spin(vex::directionType::fwd,rightSpeedMainUser,vex::velocityUnits::pct);
+            RightBChassis.spin(vex::directionType::fwd,rightSpeedMainUser,vex::velocityUnits::pct);
+            LeftFChassis.spin(vex::directionType::fwd,leftSpeedMainUser,vex::velocityUnits::pct);
+            LeftBChassis.spin(vex::directionType::fwd,leftSpeedMainUser,vex::velocityUnits::pct);
+        }
+        //Flywheel Control
+        if(flySpeed == 0.0){
+            FlywheelTop.stop(vex::brakeType::coast);
+            FlywheelBot.stop(vex::brakeType::coast);
+        }
+        else{
+            double error = FlywheelTop.velocity(vex::velocityUnits::pct) - flySpeed;
+            FlywheelTop.spin(vex::directionType::fwd, flySpeed - (error/2.0), vex::velocityUnits::rpm);
+            FlywheelBot.spin(vex::directionType::fwd, flySpeed - (error/2.0), vex::velocityUnits::rpm);
+        }
+        
+        //Intake/Indexer Control
+        if(over == false){
+            double diff = fabs(LineOne.value(vex::analogUnits::range12bit) - restingLineOne);
+            if(diff < 200.0){
+                if(MainUser.ButtonR2.pressing()){
+                    Intake.spin(vex::directionType::rev, 100, vex::velocityUnits::pct);
+                }
+                else if(isShooting == false){
+                    Intake.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+                    Indexer.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                }
+            }
+            else{
+                if(isShooting == false){
+                    Indexer.stop(vex::brakeType::hold);
+                }
+                double diffTwo = fabs(LineTwo.value(vex::analogUnits::range12bit) - restingLineTwo);
+                if(diffTwo < 40.0){
+                    if(MainUser.ButtonR2.pressing()){
+                        Intake.spin(vex::directionType::rev, 100, vex::velocityUnits::pct);
+                    }
+                    else if(isShooting == false){
+                        Intake.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+                    }
+                }
+                else{
+                    if(MainUser.ButtonR2.pressing()){
+                        Intake.spin(vex::directionType::rev, 100, vex::velocityUnits::pct);
+                    }
+                    else if(isShooting == false){
+                        Intake.stop(vex::brakeType::hold);
+                    }
+                }
+            }
+        }
+        else{
+            if(MainUser.ButtonL2.pressing()){
+                Intake.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+                Indexer.stop(vex::brakeType::hold);
+            }
+            else if(MainUser.ButtonR2.pressing()){
+                Intake.spin(vex::directionType::rev, 100, vex::velocityUnits::pct);
+                Indexer.stop(vex::brakeType::hold);
+            }
+            else if(MainUser.ButtonR1.pressing()){
+                Intake.spin(vex::directionType::fwd, 80, vex::velocityUnits::pct);
+                Indexer.spin(vex::directionType::fwd, 100, vex::velocityUnits::pct);
+            }
+            else{
+                Intake.stop(vex::brakeType::hold);
+                Indexer.stop(vex::brakeType::hold);
+            }
+        }
+    }
+}
