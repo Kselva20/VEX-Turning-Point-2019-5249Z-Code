@@ -1,0 +1,46 @@
+#include "robot-config.h"
+#include "math.h"
+
+void PIDMove(double dist, double speed);
+void PIDTurn(double deg, double speed);
+
+int main() {
+    
+}
+
+void PIDMove(double dist, double speed){
+    RightMotor.resetRotation();
+    LeftMotor.resetRotation();
+    
+    double goal = (90.0 * dist)/(M_PI);
+    
+    double pGain = 0.0;
+    double iGain = 0.0;
+    double dGain = 0.0;
+    
+    double error = goal - RightMotor.rotation(vex::rotationUnits::deg);
+    double errorSum = 0.0;
+    double oldError = RightMotor.rotation(vex::rotationUnits::deg);
+    
+    while(error > 0.0){
+        error = goal - RightMotor.rotation(vex::rotationUnits::deg);
+        
+        errorSum += error;
+        
+        if(error < 300.0){
+            errorSum = 0.0;
+        }
+        
+        double change = error - oldError;
+        oldError = error;
+        
+        double speed = (error*pGain) + ((1.0/errorSum)*(iGain)) + (change*dGain);
+    }
+    
+    RightMotor.stop(vex::brakeType::brake);
+    LeftMotor.stop(vex::brakeType::brake);
+}
+
+void PIDTurn(double deg, double speed){
+    
+}
