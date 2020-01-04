@@ -2,9 +2,9 @@ vex::brain Brain;
 vex::controller MainUser = vex::controller();
 vex::controller SecondUser = vex::controller(vex::controllerType::partner);
 
-vex::motor Claw = vex::motor(vex::PORT19,vex::gearSetting::ratio18_1,false);
+vex::motor Claw = vex::motor(vex::PORT10,vex::gearSetting::ratio18_1,false);
 
-vex::motor RightChassis = vex::motor(vex::PORT16,vex::gearSetting::ratio18_1,true);
+vex::motor RightChassis = vex::motor(vex::PORT15,vex::gearSetting::ratio18_1,true);
 vex::motor LeftChassis = vex::motor(vex::PORT13,vex::gearSetting::ratio18_1,false);
 
 vex::motor RightLift = vex::motor(vex::PORT20,vex::gearSetting::ratio18_1,false);
@@ -17,9 +17,9 @@ vex::motor FlywheelBot = vex::motor(vex::PORT1,vex::gearSetting::ratio18_1,false
 
 vex::gyro Gyroscope = vex::gyro(Brain.ThreeWirePort.A);
 
-vex::vision::signature REDFLAG (1, 5957, 9959, 7958, -649, 1, -324, 2.8, 0);
-vex::vision::signature BLUEFLAG (2, -2891, -1213, -2052, 3399, 8323, 5861, 1.7, 0);
-vex::vision::signature BALL (0, 0, 0, 0, 0, 0, 0, 0, 0);
+vex::vision::signature REDFLAG (1, 0, 0, 0, 0, 0, 0, 2.799999952316284, 0);
+vex::vision::signature BLUEFLAG (2, 0, 0, 0, 0, 0, 0, 1.7000000476837158, 0);
+vex::vision::signature BALL (3, 0, 0, 0, 0, 0, 0, 3, 0);
 vex::vision VisionFlag (vex::PORT4, 50, REDFLAG, BLUEFLAG, BALL);
 
 
